@@ -1,10 +1,11 @@
 # 🧠 Subconscious Latent Offloading
-
 **Single-Shot System-RAM Steering Across Quantized and Cross-Scale Language Models**
 
-[![Preprint](https://img.shields.io/badge/Preprint-2026-b31b1b.svg)](#-citation)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24073662.svg)](https://doi.org/10.5281/zenodo.24073662)
+[![Preprint PDF](https://img.shields.io/badge/Preprint-PDF-b31b1b.svg)](https://doi.org/10.5281/zenodo.24073662)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-subconscious--engine-181717?logo=github)](https://github.com/Pratham-Solanki911/subconscious-engine)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 > *"Your brain does the thinking; your mouth speaks it. Nobody rewires the core reasoning brain just to speak quickly, nor does the mouth need a 7B parameter pass to choose between a comma and a period."*
 
@@ -101,7 +102,9 @@ python -m benchmarks.run_ablation
   author={Solanki, Pratham},
   year={2026},
   month={November},
-  note={Preprint}
+  publisher={Zenodo},
+  doi={10.5281/zenodo.24073662},
+  url={https://doi.org/10.5281/zenodo.24073662}
 }
 ```
 
