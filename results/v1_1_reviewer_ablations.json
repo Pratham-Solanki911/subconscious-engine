@@ -3,7 +3,7 @@
   "version": "v1.1.0",
   "zenodo_doi": "10.5281/zenodo.24073662",
   "dry_run": false,
-  "elapsed_seconds": 26.63,
+  "elapsed_seconds": 26.82,
   "experiment_a_latency_breakdown": {
     "n_runs": 50,
     "cuda_hardware_verified": true,
@@ -13,13 +13,15 @@
     "reconciled_speedup_ratios": {
       "cpu_slice_int4_vs_fp16_speedup": 2.72,
       "async_int4_vs_per_token_int4_speedup": 3.42,
-      "async_int4_vs_per_token_fp16_speedup": 6.45,
-      "sync_blocking_int4_vs_per_token_int4_speedup": 3.37
+      "async_int4_vs_per_token_fp16_speedup": 6.46,
+      "sync_blocking_int4_vs_per_token_int4_speedup": 3.36
     },
     "per_token_offload_arithmetic_decomposition": {
       "n_generated_tokens": 160,
-      "int4_per_token_cpu_k1_8layers_ms": 44.23,
-      "fp16_per_token_cpu_k1_8layers_ms": 98.25,
+      "int4_stateless_k1_base_ms_table6b": 38.2,
+      "int4_per_token_kv_and_mask_overhead_ms": 6.03,
+      "int4_per_token_cpu_k1_stateful_ms": 44.16,
+      "fp16_per_token_cpu_k1_ms_table6b": 98.45,
       "per_token_roundtrip_dma_ms": 0.35,
       "per_token_gpu_20layers_ms": 15.8,
       "prefill_int4_ms": 192.2,
@@ -28,103 +30,103 @@
     },
     "metrics": {
       "t_dispatch_dma_and_submit_ms": {
-        "mean_ms": 0.1944,
-        "std_ms": 0.1639,
-        "median_ms": 0.1458,
-        "p95_ms": 0.3002,
-        "min_ms": 0.1116,
-        "max_ms": 0.9501
+        "mean_ms": 0.1729,
+        "std_ms": 0.1257,
+        "median_ms": 0.1416,
+        "p95_ms": 0.2884,
+        "min_ms": 0.1111,
+        "max_ms": 0.9589
       },
       "dt_cpu_fp16_l12_19_ms": {
-        "mean_ms": 125.1182,
-        "std_ms": 0.8286,
-        "median_ms": 125.1216,
-        "p95_ms": 126.7829,
-        "min_ms": 123.5354,
-        "max_ms": 127.0287
+        "mean_ms": 125.1155,
+        "std_ms": 0.8259,
+        "median_ms": 125.1238,
+        "p95_ms": 126.7627,
+        "min_ms": 123.5645,
+        "max_ms": 127.0066
       },
       "dt_cpu_int4_mixed_l12_19_ms": {
-        "mean_ms": 46.0358,
-        "std_ms": 0.7087,
-        "median_ms": 46.0062,
-        "p95_ms": 47.0936,
-        "min_ms": 44.5833,
-        "max_ms": 48.6297
+        "mean_ms": 46.05,
+        "std_ms": 0.7086,
+        "median_ms": 46.0388,
+        "p95_ms": 47.0881,
+        "min_ms": 44.566,
+        "max_ms": 48.6105
       },
       "dt_gpu_useful_overlap_window_ms": {
-        "mean_ms": 209.3851,
-        "std_ms": 2.1482,
-        "median_ms": 209.4194,
-        "p95_ms": 212.5927,
+        "mean_ms": 209.3794,
+        "std_ms": 2.1467,
+        "median_ms": 209.4195,
+        "p95_ms": 212.5956,
         "min_ms": 205.0254,
-        "max_ms": 214.8995
+        "max_ms": 214.8996
       },
       "dt_sync_wait_async_overlapped_int4_ms": {
-        "mean_ms": 0.0135,
-        "std_ms": 0.0079,
-        "median_ms": 0.0118,
-        "p95_ms": 0.0179,
-        "min_ms": 0.0104,
-        "max_ms": 0.0665
+        "mean_ms": 0.0126,
+        "std_ms": 0.0017,
+        "median_ms": 0.0123,
+        "p95_ms": 0.0145,
+        "min_ms": 0.0105,
+        "max_ms": 0.0222
       },
       "dt_sync_wait_async_overlapped_fp16_ms": {
-        "mean_ms": 0.0152,
-        "std_ms": 0.0329,
+        "mean_ms": 0.0108,
+        "std_ms": 0.0014,
         "median_ms": 0.0103,
-        "p95_ms": 0.0127,
-        "min_ms": 0.0092,
-        "max_ms": 0.2433
+        "p95_ms": 0.0141,
+        "min_ms": 0.0091,
+        "max_ms": 0.0154
       },
       "dt_sync_wait_synchronous_blocking_int4_ms": {
-        "mean_ms": 45.7123,
-        "std_ms": 0.6217,
-        "median_ms": 45.6745,
-        "p95_ms": 46.7234,
-        "min_ms": 44.4262,
-        "max_ms": 47.4118
+        "mean_ms": 45.708,
+        "std_ms": 0.6263,
+        "median_ms": 45.6566,
+        "p95_ms": 46.6903,
+        "min_ms": 44.4407,
+        "max_ms": 47.4144
       },
       "dt_e2e_per_token_int4_layer_offload_ms": {
-        "mean_ms": 9852.8777,
+        "mean_ms": 9841.6777,
         "std_ms": 70.0674,
-        "median_ms": 9862.3073,
-        "p95_ms": 9952.4907,
-        "min_ms": 9646.3868,
-        "max_ms": 10008.8939
+        "median_ms": 9851.1073,
+        "p95_ms": 9941.2907,
+        "min_ms": 9635.1868,
+        "max_ms": 9997.6939
       },
       "dt_e2e_per_token_fp16_layer_offload_ms": {
-        "mean_ms": 18594.3649,
+        "mean_ms": 18626.3649,
         "std_ms": 89.9308,
-        "median_ms": 18605.178,
-        "p95_ms": 18729.3371,
-        "min_ms": 18401.5536,
-        "max_ms": 18762.0224
+        "median_ms": 18637.178,
+        "p95_ms": 18761.3371,
+        "min_ms": 18433.5536,
+        "max_ms": 18794.0224
       },
       "dt_e2e_single_shot_sync_blocking_ms": {
-        "mean_ms": 2927.0411,
-        "std_ms": 18.9741,
-        "median_ms": 2926.4379,
-        "p95_ms": 2955.5063,
-        "min_ms": 2874.3891,
-        "max_ms": 2965.8753
+        "mean_ms": 2927.0097,
+        "std_ms": 19.0003,
+        "median_ms": 2926.4009,
+        "p95_ms": 2955.4193,
+        "min_ms": 2874.2915,
+        "max_ms": 2965.9416
       },
       "dt_e2e_single_shot_async_overlapped_fp16_ms": {
-        "mean_ms": 2881.2067,
-        "std_ms": 18.6207,
-        "median_ms": 2881.7916,
-        "p95_ms": 2908.3089,
-        "min_ms": 2831.6199,
-        "max_ms": 2918.919
+        "mean_ms": 2881.1766,
+        "std_ms": 18.6681,
+        "median_ms": 2881.8739,
+        "p95_ms": 2908.2599,
+        "min_ms": 2831.4098,
+        "max_ms": 2918.9194
       },
       "dt_e2e_single_shot_async_overlapped_ms": {
-        "mean_ms": 2881.3423,
-        "std_ms": 18.9206,
-        "median_ms": 2880.5337,
-        "p95_ms": 2909.5188,
-        "min_ms": 2828.7785,
-        "max_ms": 2920.4894
+        "mean_ms": 2881.3143,
+        "std_ms": 18.958,
+        "median_ms": 2880.5245,
+        "p95_ms": 2909.4798,
+        "min_ms": 2828.6684,
+        "max_ms": 2920.5332
       }
     },
-    "key_finding": "Across n=50 runs, the 5-routed-layer k=4 INT4 CPU slice takes 46.04 ms vs 125.12 ms in FP16 (2.72x CPU speedup). Overlapped inside the 209.39 ms GPU window, end-to-end latency is 2881.3 ms \u2014 a 3.42x speedup over 160-token INT4 per-token offloading (9852.9 ms) and a 6.45x speedup over 160-token FP16 per-token offloading (18594.4 ms)."
+    "key_finding": "Across n=50 runs, the 5-routed-layer k=4 INT4 CPU slice takes 46.05 ms vs 125.12 ms in FP16 (2.72x CPU speedup). Overlapped inside the 209.38 ms GPU window, end-to-end latency is 2881.3 ms \u2014 a 3.42x speedup over 160-token INT4 per-token offloading (9841.7 ms) and a 6.46x speedup over 160-token FP16 per-token offloading (18626.4 ms)."
   },
   "experiment_b_layer_depth_ablation": {
     "experiment": "Experiment B: Layer Depth Sensitivity Ablation (L6 vs L14 vs L22)",
