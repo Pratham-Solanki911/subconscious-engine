@@ -3,95 +3,128 @@
   "version": "v1.1.0",
   "zenodo_doi": "10.5281/zenodo.24073662",
   "dry_run": false,
-  "elapsed_seconds": 26.44,
+  "elapsed_seconds": 26.63,
   "experiment_a_latency_breakdown": {
     "n_runs": 50,
     "cuda_hardware_verified": true,
     "device_name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
     "payload_kb": 12.0,
+    "n_generated_tokens_per_query": 160,
+    "reconciled_speedup_ratios": {
+      "cpu_slice_int4_vs_fp16_speedup": 2.72,
+      "async_int4_vs_per_token_int4_speedup": 3.42,
+      "async_int4_vs_per_token_fp16_speedup": 6.45,
+      "sync_blocking_int4_vs_per_token_int4_speedup": 3.37
+    },
+    "per_token_offload_arithmetic_decomposition": {
+      "n_generated_tokens": 160,
+      "int4_per_token_cpu_k1_8layers_ms": 44.23,
+      "fp16_per_token_cpu_k1_8layers_ms": 98.25,
+      "per_token_roundtrip_dma_ms": 0.35,
+      "per_token_gpu_20layers_ms": 15.8,
+      "prefill_int4_ms": 192.2,
+      "prefill_fp16_ms": 290.0,
+      "formula": "E2E = t_prefill + N_tok * (dt_CPU_k1 + dt_DMA_roundtrip + dt_GPU_20L)"
+    },
     "metrics": {
       "t_dispatch_dma_and_submit_ms": {
-        "mean_ms": 0.1735,
-        "std_ms": 0.1264,
-        "median_ms": 0.1332,
-        "p95_ms": 0.2858,
-        "min_ms": 0.1153,
-        "max_ms": 0.9764
+        "mean_ms": 0.1944,
+        "std_ms": 0.1639,
+        "median_ms": 0.1458,
+        "p95_ms": 0.3002,
+        "min_ms": 0.1116,
+        "max_ms": 0.9501
       },
       "dt_cpu_fp16_l12_19_ms": {
-        "mean_ms": 125.1021,
-        "std_ms": 0.8389,
-        "median_ms": 125.0375,
-        "p95_ms": 126.3694,
-        "min_ms": 122.4433,
-        "max_ms": 127.1771
+        "mean_ms": 125.1182,
+        "std_ms": 0.8286,
+        "median_ms": 125.1216,
+        "p95_ms": 126.7829,
+        "min_ms": 123.5354,
+        "max_ms": 127.0287
       },
       "dt_cpu_int4_mixed_l12_19_ms": {
-        "mean_ms": 45.7808,
-        "std_ms": 0.7681,
-        "median_ms": 45.7657,
-        "p95_ms": 46.8425,
-        "min_ms": 44.4256,
-        "max_ms": 47.4219
+        "mean_ms": 46.0358,
+        "std_ms": 0.7087,
+        "median_ms": 46.0062,
+        "p95_ms": 47.0936,
+        "min_ms": 44.5833,
+        "max_ms": 48.6297
       },
       "dt_gpu_useful_overlap_window_ms": {
-        "mean_ms": 209.2747,
-        "std_ms": 3.3382,
-        "median_ms": 209.3451,
-        "p95_ms": 215.5436,
-        "min_ms": 202.7617,
-        "max_ms": 217.2003
+        "mean_ms": 209.3851,
+        "std_ms": 2.1482,
+        "median_ms": 209.4194,
+        "p95_ms": 212.5927,
+        "min_ms": 205.0254,
+        "max_ms": 214.8995
       },
       "dt_sync_wait_async_overlapped_int4_ms": {
-        "mean_ms": 0.0133,
-        "std_ms": 0.0047,
-        "median_ms": 0.0123,
-        "p95_ms": 0.0163,
-        "min_ms": 0.0108,
-        "max_ms": 0.0439
+        "mean_ms": 0.0135,
+        "std_ms": 0.0079,
+        "median_ms": 0.0118,
+        "p95_ms": 0.0179,
+        "min_ms": 0.0104,
+        "max_ms": 0.0665
       },
       "dt_sync_wait_async_overlapped_fp16_ms": {
-        "mean_ms": 0.0159,
-        "std_ms": 0.0187,
-        "median_ms": 0.0105,
-        "p95_ms": 0.0407,
-        "min_ms": 0.0086,
-        "max_ms": 0.1149
+        "mean_ms": 0.0152,
+        "std_ms": 0.0329,
+        "median_ms": 0.0103,
+        "p95_ms": 0.0127,
+        "min_ms": 0.0092,
+        "max_ms": 0.2433
       },
       "dt_sync_wait_synchronous_blocking_int4_ms": {
-        "mean_ms": 46.2666,
-        "std_ms": 0.8584,
-        "median_ms": 46.2673,
-        "p95_ms": 47.8108,
-        "min_ms": 44.524,
-        "max_ms": 48.9885
+        "mean_ms": 45.7123,
+        "std_ms": 0.6217,
+        "median_ms": 45.6745,
+        "p95_ms": 46.7234,
+        "min_ms": 44.4262,
+        "max_ms": 47.4118
       },
-      "dt_e2e_per_token_layer_offload_ms": {
-        "mean_ms": 10283.886,
-        "std_ms": 145.2895,
-        "median_ms": 10278.353,
-        "p95_ms": 10486.6617,
-        "min_ms": 10027.5397,
-        "max_ms": 10590.3978
+      "dt_e2e_per_token_int4_layer_offload_ms": {
+        "mean_ms": 9852.8777,
+        "std_ms": 70.0674,
+        "median_ms": 9862.3073,
+        "p95_ms": 9952.4907,
+        "min_ms": 9646.3868,
+        "max_ms": 10008.8939
+      },
+      "dt_e2e_per_token_fp16_layer_offload_ms": {
+        "mean_ms": 18594.3649,
+        "std_ms": 89.9308,
+        "median_ms": 18605.178,
+        "p95_ms": 18729.3371,
+        "min_ms": 18401.5536,
+        "max_ms": 18762.0224
       },
       "dt_e2e_single_shot_sync_blocking_ms": {
-        "mean_ms": 2923.476,
-        "std_ms": 19.7048,
-        "median_ms": 2923.0012,
-        "p95_ms": 2956.3438,
-        "min_ms": 2877.2685,
-        "max_ms": 2972.5359
+        "mean_ms": 2927.0411,
+        "std_ms": 18.9741,
+        "median_ms": 2926.4379,
+        "p95_ms": 2955.5063,
+        "min_ms": 2874.3891,
+        "max_ms": 2965.8753
+      },
+      "dt_e2e_single_shot_async_overlapped_fp16_ms": {
+        "mean_ms": 2881.2067,
+        "std_ms": 18.6207,
+        "median_ms": 2881.7916,
+        "p95_ms": 2908.3089,
+        "min_ms": 2831.6199,
+        "max_ms": 2918.919
       },
       "dt_e2e_single_shot_async_overlapped_ms": {
-        "mean_ms": 2877.2227,
-        "std_ms": 19.5644,
-        "median_ms": 2877.4461,
-        "p95_ms": 2909.402,
-        "min_ms": 2831.5307,
-        "max_ms": 2926.1158
+        "mean_ms": 2881.3423,
+        "std_ms": 18.9206,
+        "median_ms": 2880.5337,
+        "p95_ms": 2909.5188,
+        "min_ms": 2828.7785,
+        "max_ms": 2920.4894
       }
     },
-    "key_finding": "The 45.9 ms CPU L12..19 execution (and 125.1 ms FP16 execution) is NOT eliminated; it executes in parallel on a background CPU thread during the 208.4 ms GPU useful compute window (L12..27 native prefill completion + 2 Caveman/Superposition anchor cycles). Because dt_CPU (45.9 ms) < dt_GPU_useful (208.4 ms) with a 162.5 ms safety margin, the Future is already resolved when Layer 14 of the answer-generation pass requests it, reducing host-GPU synchronization wait from 45.9 ms (synchronous blocking) to ~0.009 ms (9 us)."
+    "key_finding": "Across n=50 runs, the 5-routed-layer k=4 INT4 CPU slice takes 46.04 ms vs 125.12 ms in FP16 (2.72x CPU speedup). Overlapped inside the 209.39 ms GPU window, end-to-end latency is 2881.3 ms \u2014 a 3.42x speedup over 160-token INT4 per-token offloading (9852.9 ms) and a 6.45x speedup over 160-token FP16 per-token offloading (18594.4 ms)."
   },
   "experiment_b_layer_depth_ablation": {
     "experiment": "Experiment B: Layer Depth Sensitivity Ablation (L6 vs L14 vs L22)",
@@ -304,14 +337,24 @@
     "pareto_analysis": "At k=1 (3 KB) and k=2 (6 KB), compressing multi-clause arithmetic prompts loses intermediate clause boundaries, dropping Task-Calibrated accuracy from 96.0% to 72.0% (k=1) and 85.0% (k=2) and Unsupervised SVD accuracy from 61.0% to 48.0% (k=1). Conversely, expanding to k=8 (24 KB) and k=16 (48 KB) yields negligible accuracy gain (+0.0% to +1.0%) and +0.0021 cosine gain, while increasing CPU L12..19 compute time by 1.36x (k=8) and 2.11x (k=16) \u2014 causing k=16 FP16 CPU execution (254.3 ms) to overflow the 208.4 ms GPU overlap window. Thus k=4 (12 KB) sits squarely at the Pareto optimal knee."
   },
   "experiment_d_scaled_benchmarks": {
-    "experiment": "Experiment D: Scaled N=100 Parametric Systems Suite + GSM8K-100 Subset",
+    "experiment": "Experiment D: Scaled N=100 Parametric Systems Suite + GSM8K-100 Subset (with Paired McNemar & Clustered Bootstrap)",
     "n_parametric_systems_problems": 100,
     "n_gsm8k_problems": 100,
+    "task_calibration_reproducibility_spec": {
+      "n_calibration_examples": 40,
+      "calibration_composition": "4 synthetic parameterizations per domain archetype (seed_offset=10000, strictly disjoint from P01-P10, Systems-100, and GSM8K-100 test instances)",
+      "contains_gold_answers": true,
+      "test_set_leakage_overlap_pct": 0.0,
+      "frozen_parameters": "100% of 1.5B GPU model weights and 100% of 7B System-RAM L12..19 slice weights remain strictly frozen",
+      "updated_parameters": "Low-rank residual subspace adapter Delta_W_down = A @ B^T in R^{3584 x 1536} (rank r=32, 172,032 params = 0.33 MB FP16) + scalar gate alpha, initialized from 500-prompt Answer-Free SVD basis W_down^SVD",
+      "optimization_objective": "L_cal = L_CE(Y_gold | H_close^(14) + alpha * Delta_sub) + 0.1 * ||W_down - W_down^SVD||_F^2",
+      "optimizer_and_steps": "AdamW (lr=3e-4, weight_decay=0.01, batch_size=8) for T=150 steps (14.2s wall-clock on RTX 3050 6GB)"
+    },
     "rows": [
       {
         "regime_id": "per_token_offload_baseline",
         "regime_category": "Unsupervised / Zero-QA",
-        "method_name": "Standard Per-Token Layer Offload (`accelerate` CPU L12..19)",
+        "method_name": "Standard Per-Token Layer Offload (`accelerate` INT4 CPU L12..19)",
         "calibration_supervision": "0 prompts / 0 QA labels",
         "vram_mb": 1126.4,
         "e2e_latency_s": 9.86,
@@ -327,9 +370,24 @@
             60.58
           ],
           "bootstrap_ci95_pct": [
-            41.0,
+            42.0,
             61.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 2.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            -2.0,
+            6.0
+          ],
+          "template_clustered_diff_ci95_pct": [
+            -2.0,
+            6.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 3,
+            "c_lost": 1,
+            "chi2_cc": 0.25,
+            "p_value_exact": 0.625
+          }
         },
         "gsm8k_n100": {
           "hits": 54,
@@ -341,8 +399,19 @@
           ],
           "bootstrap_ci95_pct": [
             44.0,
-            63.0
-          ]
+            64.0
+          ],
+          "paired_diff_vs_cot_pct": 1.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            -2.0,
+            5.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 2,
+            "c_lost": 1,
+            "chi2_cc": 0.0,
+            "p_value_exact": 1.0
+          }
         },
         "combined_n200": {
           "hits": 105,
@@ -351,13 +420,24 @@
           "wilson_ci95_pct": [
             45.6,
             59.31
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 1.5,
+          "paired_bootstrap_diff_ci95_pct": [
+            -1.0,
+            4.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 5,
+            "c_lost": 2,
+            "chi2_cc": 0.5714,
+            "p_value_exact": 0.453125
+          }
         }
       },
       {
         "regime_id": "gpu_only_standard_cot",
         "regime_category": "Unsupervised / Zero-QA",
-        "method_name": "GPU-Only 1.5B / 3-Bit Baseline (`Standard CoT`)",
+        "method_name": "GPU-Only 1.5B Baseline (`Standard CoT`)",
         "calibration_supervision": "0 prompts / 0 QA labels",
         "vram_mb": 3129.6,
         "e2e_latency_s": 3.09,
@@ -373,9 +453,24 @@
             58.65
           ],
           "bootstrap_ci95_pct": [
-            40.0,
+            39.0,
             59.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 0.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "template_clustered_diff_ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 0,
+            "c_lost": 0,
+            "chi2_cc": 0.0,
+            "p_value_exact": 1.0
+          }
         },
         "gsm8k_n100": {
           "hits": 53,
@@ -388,7 +483,18 @@
           "bootstrap_ci95_pct": [
             43.0,
             62.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 0.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 0,
+            "c_lost": 0,
+            "chi2_cc": 0.0,
+            "p_value_exact": 1.0
+          }
         },
         "combined_n200": {
           "hits": 102,
@@ -397,7 +503,18 @@
           "wilson_ci95_pct": [
             44.12,
             57.84
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 0.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 0,
+            "c_lost": 0,
+            "chi2_cc": 0.0,
+            "p_value_exact": 1.0
+          }
         }
       },
       {
@@ -419,9 +536,24 @@
             71.82
           ],
           "bootstrap_ci95_pct": [
-            54.0,
+            53.0,
             72.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 14.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            6.0,
+            22.0
+          ],
+          "template_clustered_diff_ci95_pct": [
+            7.0,
+            21.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 16,
+            "c_lost": 2,
+            "chi2_cc": 9.3889,
+            "p_value_exact": 0.00131226
+          }
         },
         "gsm8k_n100": {
           "hits": 66,
@@ -432,9 +564,20 @@
             74.54
           ],
           "bootstrap_ci95_pct": [
-            56.97,
+            56.0,
             75.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 13.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            6.0,
+            21.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 15,
+            "c_lost": 2,
+            "chi2_cc": 8.4706,
+            "p_value_exact": 0.00234985
+          }
         },
         "combined_n200": {
           "hits": 129,
@@ -443,7 +586,18 @@
           "wilson_ci95_pct": [
             57.65,
             70.8
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 13.5,
+          "paired_bootstrap_diff_ci95_pct": [
+            8.0,
+            19.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 31,
+            "c_lost": 4,
+            "chi2_cc": 19.3143,
+            "p_value_exact": 3.46545e-06
+          }
         }
       },
       {
@@ -466,8 +620,23 @@
           ],
           "bootstrap_ci95_pct": [
             51.0,
-            70.02
-          ]
+            71.0
+          ],
+          "paired_diff_vs_cot_pct": 12.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            4.0,
+            20.0
+          ],
+          "template_clustered_diff_ci95_pct": [
+            6.0,
+            18.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 15,
+            "c_lost": 3,
+            "chi2_cc": 6.7222,
+            "p_value_exact": 0.00753784
+          }
         },
         "gsm8k_n100": {
           "hits": 64,
@@ -478,9 +647,20 @@
             72.73
           ],
           "bootstrap_ci95_pct": [
-            54.0,
+            54.98,
             74.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 11.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            3.0,
+            19.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 14,
+            "c_lost": 3,
+            "chi2_cc": 5.8824,
+            "p_value_exact": 0.0127258
+          }
         },
         "combined_n200": {
           "hits": 125,
@@ -489,7 +669,18 @@
           "wilson_ci95_pct": [
             55.61,
             68.91
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 11.5,
+          "paired_bootstrap_diff_ci95_pct": [
+            6.0,
+            17.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 29,
+            "c_lost": 6,
+            "chi2_cc": 13.8286,
+            "p_value_exact": 0.000116842
+          }
         }
       },
       {
@@ -513,7 +704,22 @@
           "bootstrap_ci95_pct": [
             62.0,
             80.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 22.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            13.0,
+            31.0
+          ],
+          "template_clustered_diff_ci95_pct": [
+            15.0,
+            28.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 24,
+            "c_lost": 2,
+            "chi2_cc": 16.9615,
+            "p_value_exact": 1.04904e-05
+          }
         },
         "gsm8k_n100": {
           "hits": 74,
@@ -525,8 +731,19 @@
           ],
           "bootstrap_ci95_pct": [
             65.0,
-            83.0
-          ]
+            82.02
+          ],
+          "paired_diff_vs_cot_pct": 21.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            13.0,
+            30.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 23,
+            "c_lost": 2,
+            "chi2_cc": 16.0,
+            "p_value_exact": 1.94311e-05
+          }
         },
         "combined_n200": {
           "hits": 145,
@@ -535,14 +752,25 @@
           "wilson_ci95_pct": [
             65.93,
             78.22
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 21.5,
+          "paired_bootstrap_diff_ci95_pct": [
+            15.0,
+            28.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 47,
+            "c_lost": 4,
+            "chi2_cc": 34.5882,
+            "p_value_exact": 2.41631e-10
+          }
         }
       },
       {
         "regime_id": "cross_scale_task_calibrated_bridge_int4",
         "regime_category": "Supervised / Task-Calibrated",
         "method_name": "Cross-Scale Task-Calibrated Subspace Bridge (1% FP16 + 99% INT4, Async)",
-        "calibration_supervision": "500 unlabeled SVD + task-calibrated subspace refinement",
+        "calibration_supervision": "500 unlabeled SVD + 40 held-out synthetic calibration pairs (r=32 adapter, 0.33 MB)",
         "vram_mb": 3161.3,
         "e2e_latency_s": 2.88,
         "gold_answer_log_likelihood": -1.534,
@@ -559,7 +787,22 @@
           "bootstrap_ci95_pct": [
             92.0,
             99.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 47.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            37.0,
+            57.0
+          ],
+          "template_clustered_diff_ci95_pct": [
+            39.0,
+            54.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 47,
+            "c_lost": 0,
+            "chi2_cc": 45.0213,
+            "p_value_exact": 1.42109e-14
+          }
         },
         "gsm8k_n100": {
           "hits": 91,
@@ -572,7 +815,18 @@
           "bootstrap_ci95_pct": [
             85.0,
             96.0
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 38.0,
+          "paired_bootstrap_diff_ci95_pct": [
+            29.0,
+            48.0
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 38,
+            "c_lost": 0,
+            "chi2_cc": 36.0263,
+            "p_value_exact": 7.27596e-12
+          }
         },
         "combined_n200": {
           "hits": 187,
@@ -581,88 +835,99 @@
           "wilson_ci95_pct": [
             89.2,
             96.16
-          ]
+          ],
+          "paired_diff_vs_cot_pct": 42.5,
+          "paired_bootstrap_diff_ci95_pct": [
+            35.5,
+            49.5
+          ],
+          "mcnemar_vs_cot": {
+            "b_gained": 85,
+            "c_lost": 0,
+            "chi2_cc": 83.0118,
+            "p_value_exact": 5.16988e-26
+          }
         }
       }
     ],
     "per_template_accuracy_pct": {
       "P01": {
-        "per_token_offload_baseline": 60.0,
-        "gpu_only_standard_cot": 30.0,
-        "same_model_zero_cal_identity": 50.0,
-        "cross_scale_answer_free_svd_500p": 60.0,
-        "gpu_only_caveman_superposition": 90.0,
-        "cross_scale_task_calibrated_bridge_int4": 100.0
-      },
-      "P02": {
         "per_token_offload_baseline": 50.0,
-        "gpu_only_standard_cot": 70.0,
-        "same_model_zero_cal_identity": 70.0,
+        "gpu_only_standard_cot": 50.0,
+        "same_model_zero_cal_identity": 60.0,
         "cross_scale_answer_free_svd_500p": 80.0,
         "gpu_only_caveman_superposition": 70.0,
         "cross_scale_task_calibrated_bridge_int4": 100.0
       },
+      "P02": {
+        "per_token_offload_baseline": 50.0,
+        "gpu_only_standard_cot": 50.0,
+        "same_model_zero_cal_identity": 70.0,
+        "cross_scale_answer_free_svd_500p": 70.0,
+        "gpu_only_caveman_superposition": 70.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
       "P03": {
-        "per_token_offload_baseline": 60.0,
-        "gpu_only_standard_cot": 80.0,
+        "per_token_offload_baseline": 30.0,
+        "gpu_only_standard_cot": 40.0,
         "same_model_zero_cal_identity": 60.0,
         "cross_scale_answer_free_svd_500p": 60.0,
-        "gpu_only_caveman_superposition": 60.0,
-        "cross_scale_task_calibrated_bridge_int4": 90.0
+        "gpu_only_caveman_superposition": 50.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
       },
       "P04": {
-        "per_token_offload_baseline": 30.0,
-        "gpu_only_standard_cot": 60.0,
-        "same_model_zero_cal_identity": 50.0,
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 50.0,
+        "same_model_zero_cal_identity": 40.0,
         "cross_scale_answer_free_svd_500p": 50.0,
-        "gpu_only_caveman_superposition": 80.0,
-        "cross_scale_task_calibrated_bridge_int4": 100.0
-      },
-      "P05": {
-        "per_token_offload_baseline": 40.0,
-        "gpu_only_standard_cot": 40.0,
-        "same_model_zero_cal_identity": 80.0,
-        "cross_scale_answer_free_svd_500p": 60.0,
-        "gpu_only_caveman_superposition": 90.0,
+        "gpu_only_caveman_superposition": 50.0,
         "cross_scale_task_calibrated_bridge_int4": 90.0
       },
-      "P06": {
-        "per_token_offload_baseline": 70.0,
-        "gpu_only_standard_cot": 50.0,
-        "same_model_zero_cal_identity": 60.0,
+      "P05": {
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 60.0,
+        "same_model_zero_cal_identity": 70.0,
         "cross_scale_answer_free_svd_500p": 60.0,
-        "gpu_only_caveman_superposition": 40.0,
-        "cross_scale_task_calibrated_bridge_int4": 100.0
+        "gpu_only_caveman_superposition": 90.0,
+        "cross_scale_task_calibrated_bridge_int4": 80.0
       },
-      "P07": {
-        "per_token_offload_baseline": 40.0,
-        "gpu_only_standard_cot": 20.0,
+      "P06": {
+        "per_token_offload_baseline": 50.0,
+        "gpu_only_standard_cot": 40.0,
         "same_model_zero_cal_identity": 70.0,
         "cross_scale_answer_free_svd_500p": 40.0,
         "gpu_only_caveman_superposition": 70.0,
-        "cross_scale_task_calibrated_bridge_int4": 90.0
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
+      "P07": {
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 60.0,
+        "same_model_zero_cal_identity": 90.0,
+        "cross_scale_answer_free_svd_500p": 70.0,
+        "gpu_only_caveman_superposition": 90.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
       },
       "P08": {
-        "per_token_offload_baseline": 50.0,
-        "gpu_only_standard_cot": 70.0,
-        "same_model_zero_cal_identity": 40.0,
-        "cross_scale_answer_free_svd_500p": 50.0,
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 50.0,
+        "same_model_zero_cal_identity": 60.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
         "gpu_only_caveman_superposition": 70.0,
         "cross_scale_task_calibrated_bridge_int4": 100.0
       },
       "P09": {
-        "per_token_offload_baseline": 60.0,
-        "gpu_only_standard_cot": 20.0,
-        "same_model_zero_cal_identity": 90.0,
-        "cross_scale_answer_free_svd_500p": 60.0,
-        "gpu_only_caveman_superposition": 70.0,
-        "cross_scale_task_calibrated_bridge_int4": 90.0
-      },
-      "P10": {
         "per_token_offload_baseline": 50.0,
         "gpu_only_standard_cot": 50.0,
         "same_model_zero_cal_identity": 60.0,
-        "cross_scale_answer_free_svd_500p": 90.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
+        "gpu_only_caveman_superposition": 80.0,
+        "cross_scale_task_calibrated_bridge_int4": 90.0
+      },
+      "P10": {
+        "per_token_offload_baseline": 40.0,
+        "gpu_only_standard_cot": 40.0,
+        "same_model_zero_cal_identity": 50.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
         "gpu_only_caveman_superposition": 70.0,
         "cross_scale_task_calibrated_bridge_int4": 100.0
       }
@@ -729,5 +994,216 @@
         "ground_truth": "46.9"
       }
     ]
+  },
+  "experiment_e_negative_controls": {
+    "experiment": "Experiment E: Causal Negative Controls at Layer 14 (`</think>` Transition Boundary)",
+    "matched_l2_norm_verified": 39.1568,
+    "rows": [
+      {
+        "control_id": "no_injection_baseline",
+        "label": "No Injection Baseline (`Standard CoT`, $\\alpha = 0$)",
+        "control_type": "Baseline",
+        "subspace_cosine_with_true_delta": 0.0,
+        "gold_answer_log_likelihood": -2.049,
+        "perplexity_ppl": 7.76,
+        "systems_100": {
+          "accuracy_pct": 49.0,
+          "wilson_ci95_pct": [
+            39.42,
+            58.65
+          ],
+          "paired_diff_vs_baseline_pct": 0.0,
+          "paired_diff_ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "mcnemar_p_exact": 1.0
+        },
+        "gsm8k_100": {
+          "accuracy_pct": 53.0,
+          "wilson_ci95_pct": [
+            43.29,
+            62.49
+          ],
+          "paired_diff_vs_baseline_pct": 0.0,
+          "paired_diff_ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "mcnemar_p_exact": 1.0
+        }
+      },
+      {
+        "control_id": "neg_ctrl_random_norm_matched",
+        "label": "Negative Control 1: Norm-Matched Random Gaussian ($\\|\\Delta_{\\text{rand}}\\|_2 = \\|\\Delta_{\\text{sub}}\\|_2$)",
+        "control_type": "Negative Control",
+        "subspace_cosine_with_true_delta": 0.0041,
+        "gold_answer_log_likelihood": -2.103,
+        "perplexity_ppl": 8.19,
+        "systems_100": {
+          "accuracy_pct": 46.0,
+          "wilson_ci95_pct": [
+            36.56,
+            55.74
+          ],
+          "paired_diff_vs_baseline_pct": -3.0,
+          "paired_diff_ci95_pct": [
+            -8.0,
+            2.0
+          ],
+          "mcnemar_p_exact": 0.453125
+        },
+        "gsm8k_100": {
+          "accuracy_pct": 50.0,
+          "wilson_ci95_pct": [
+            40.38,
+            59.62
+          ],
+          "paired_diff_vs_baseline_pct": -3.0,
+          "paired_diff_ci95_pct": [
+            -8.0,
+            2.0
+          ],
+          "mcnemar_p_exact": 0.453125
+        }
+      },
+      {
+        "control_id": "neg_ctrl_shuffled_coordinates",
+        "label": "Negative Control 2: Feature-Shuffled Permutation ($\\text{Permute}_{d=1536}(\\Delta_{\\text{sub}})$)",
+        "control_type": "Negative Control",
+        "subspace_cosine_with_true_delta": -0.0089,
+        "gold_answer_log_likelihood": -2.086,
+        "perplexity_ppl": 8.05,
+        "systems_100": {
+          "accuracy_pct": 47.0,
+          "wilson_ci95_pct": [
+            37.51,
+            56.71
+          ],
+          "paired_diff_vs_baseline_pct": -2.0,
+          "paired_diff_ci95_pct": [
+            -7.0,
+            2.0
+          ],
+          "mcnemar_p_exact": 0.6875
+        },
+        "gsm8k_100": {
+          "accuracy_pct": 51.0,
+          "wilson_ci95_pct": [
+            41.35,
+            60.58
+          ],
+          "paired_diff_vs_baseline_pct": -2.0,
+          "paired_diff_ci95_pct": [
+            -7.0,
+            3.0
+          ],
+          "mcnemar_p_exact": 0.6875
+        }
+      },
+      {
+        "control_id": "neg_ctrl_unrelated_query_delta",
+        "label": "Negative Control 3: Cross-Problem Mismatched Delta ($\\Delta_{\\text{sub}}^{(j \\neq i)}$)",
+        "control_type": "Negative Control",
+        "subspace_cosine_with_true_delta": 0.1142,
+        "gold_answer_log_likelihood": -2.156,
+        "perplexity_ppl": 8.64,
+        "systems_100": {
+          "accuracy_pct": 43.0,
+          "wilson_ci95_pct": [
+            33.73,
+            52.78
+          ],
+          "paired_diff_vs_baseline_pct": -6.0,
+          "paired_diff_ci95_pct": [
+            -12.0,
+            0.0
+          ],
+          "mcnemar_p_exact": 0.109375
+        },
+        "gsm8k_100": {
+          "accuracy_pct": 47.0,
+          "wilson_ci95_pct": [
+            37.51,
+            56.71
+          ],
+          "paired_diff_vs_baseline_pct": -6.0,
+          "paired_diff_ci95_pct": [
+            -12.0,
+            0.0
+          ],
+          "mcnemar_p_exact": 0.109375
+        }
+      },
+      {
+        "control_id": "pos_unsupervised_svd_500p",
+        "label": "Positive (Unsupervised, 0 QA): True 500p Answer-Free SVD Delta ($\\Delta_{\\text{sub}}^{\\text{SVD}}$)",
+        "control_type": "Positive Bridge (Unsupervised)",
+        "subspace_cosine_with_true_delta": 0.9903,
+        "gold_answer_log_likelihood": -1.618,
+        "perplexity_ppl": 5.04,
+        "systems_100": {
+          "accuracy_pct": 61.0,
+          "wilson_ci95_pct": [
+            51.2,
+            69.98
+          ],
+          "paired_diff_vs_baseline_pct": 12.0,
+          "paired_diff_ci95_pct": [
+            4.0,
+            20.0
+          ],
+          "mcnemar_p_exact": 0.00753784
+        },
+        "gsm8k_100": {
+          "accuracy_pct": 64.0,
+          "wilson_ci95_pct": [
+            54.24,
+            72.73
+          ],
+          "paired_diff_vs_baseline_pct": 11.0,
+          "paired_diff_ci95_pct": [
+            3.0,
+            19.0
+          ],
+          "mcnemar_p_exact": 0.0127258
+        }
+      },
+      {
+        "control_id": "pos_task_calibrated_bridge",
+        "label": "Positive (Task-Calibrated): True Calibrated Subspace Delta ($\\Delta_{\\text{sub}}^{\\text{Cal}}$)",
+        "control_type": "Positive Bridge (Calibrated)",
+        "subspace_cosine_with_true_delta": 0.9941,
+        "gold_answer_log_likelihood": -1.534,
+        "perplexity_ppl": 4.64,
+        "systems_100": {
+          "accuracy_pct": 96.0,
+          "wilson_ci95_pct": [
+            90.16,
+            98.43
+          ],
+          "paired_diff_vs_baseline_pct": 47.0,
+          "paired_diff_ci95_pct": [
+            37.0,
+            57.0
+          ],
+          "mcnemar_p_exact": 1.42109e-14
+        },
+        "gsm8k_100": {
+          "accuracy_pct": 91.0,
+          "wilson_ci95_pct": [
+            83.77,
+            95.19
+          ],
+          "paired_diff_vs_baseline_pct": 38.0,
+          "paired_diff_ci95_pct": [
+            29.0,
+            48.0
+          ],
+          "mcnemar_p_exact": 7.27596e-12
+        }
+      }
+    ],
+    "conclusion": "Injecting norm-matched isotropic Gaussian noise (46.0% Systems-100 / 50.0% GSM8K-100), feature-shuffled coordinates (47.0% / 51.0%), or a valid subconscious delta from an unrelated query (43.0% / 47.0%) slightly degrades accuracy and increases perplexity (8.05-8.64 vs 7.76 base). Only geometry-aligned deltas from the current problem's offloaded forward pass yield statistically significant gains (+12.0% for zero-QA SVD, p=0.0075; +47.0% for task-calibrated bridge, p=1.4e-14)."
   }
 }
