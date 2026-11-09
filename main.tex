@@ -60,7 +60,7 @@
   {\small \textbf{Code \& Benchmarks:} \href{https://github.com/Pratham-Solanki911/subconscious-engine}{\texttt{github.com/Pratham-Solanki911/subconscious-engine}} $\cdot$ \textbf{Zenodo DOI:} \href{https://doi.org/10.5281/zenodo.24073662}{\texttt{10.5281/zenodo.24073662}}}
 }
 
-\date{November 2026 (v1.1)}
+\date{November 2026}
 
 \begin{document}
 
@@ -536,7 +536,7 @@ Single-Shot Async Overlapped (FP16 Slice, $k=4$, 5L) & $0.194 \pm 0.164$ & $125.
 
 \section{Ablations, Paired Statistical Verification, \& Negative Controls}
 \label{sec:ablations}
-To rigorously validate our architectural assumptions beyond the initial 10-problem diagnostic suite, we conduct four systematic studies across hardware timing ($n=50$), depth/capacity hyperparameters ($k \in \{1,2,4,8,16\}$), paired sample scale ($N=200$), and causal negative controls (\texttt{scripts/v1\_1\_reviewer\_ablations.py}).
+To rigorously validate our architectural assumptions beyond the initial 10-problem diagnostic suite, we conduct four systematic studies across hardware timing ($n=50$), depth/capacity hyperparameters ($k \in \{1,2,4,8,16\}$), paired sample scale ($N=200$), and causal negative controls.
 
 \subsection{Reconciled Per-Token vs.\ Single-Shot Overlapped Latency ($n = 50$)}
 \textbf{Table~\ref{tab:latency_breakdown}} reconciles the exact arithmetic between per-token layer offloading and our single-shot asynchronous pipeline across $n=50$ hardware runs:
