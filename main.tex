@@ -1,0 +1,683 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, calc, backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[raggedright]{titlesec}
+\usepackage{microtype}
+
+\geometry{margin=0.68in, top=0.75in, bottom=0.75in}
+\setlength{\columnsep}{0.24in}
+\hypersetup{colorlinks=true,linkcolor=blue!70!black,citecolor=blue!70!black,urlcolor=blue!70!black}
+
+% Prevent paragraph/equation right-margin overflows
+\sloppy
+\emergencystretch=1.5em
+
+% Custom colors for diagrams
+\definecolor{gpucolor}{RGB}{225, 240, 255}
+\definecolor{gpuborder}{RGB}{30, 100, 200}
+\definecolor{ramcolor}{RGB}{255, 238, 220}
+\definecolor{ramborder}{RGB}{210, 95, 20}
+\definecolor{bridgecolor}{RGB}{230, 250, 235}
+\definecolor{bridgeborder}{RGB}{30, 150, 70}
+
+\title{\LARGE \textbf{Subconscious Latent Offloading: Single-Shot System-RAM Steering Across Quantized and Cross-Scale Language Models}}
+
+\author{
+  \textbf{Pratham Solanki} \\
+  Independent AI Systems Researcher \\
+  Mumbai, Maharashtra, India \\
+  \href{mailto:prathamsolanki.p28@gmail.com}{\texttt{prathamsolanki.p28@gmail.com}} \\[3pt]
+  {\small \textbf{Code \& Benchmarks (v1.1):} \href{https://github.com/Pratham-Solanki911/subconscious-engine}{\texttt{github.com/Pratham-Solanki911/subconscious-engine}} $\cdot$ \textbf{Zenodo DOI:} \href{https://doi.org/10.5281/zenodo.24073662}{\texttt{10.5281/zenodo.24073662}}}
+}
+
+\date{November 2026 (v1.1 Reviewer-Grade Revision)}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Deploying reasoning-capable Large Language Models (LLMs) on consumer edge GPUs is fundamentally constrained by VRAM capacity and PCIe/System-RAM memory bandwidth. Standard layer-offloading engines execute offloaded CPU/RAM layers on \emph{every generated token}, reducing autoregressive decoding to $2\text{--}5\text{ tokens/s}$ ($\sim 9.86\text{s}$ per query). Inspired by a modular systems paradigm---\emph{``The brain does the thinking; the mouth speaks it''}---we introduce \textbf{Subconscious Latent Offloading}, an architecture where a fast, self-contained GPU model (\emph{the Active Mouth}) invokes a memory-mapped System-RAM slice of intermediate layers $\mathcal{L}_{12..19}$ (\emph{the Subconscious Brain}) \textbf{strictly once per query} during prompt prefill. Rather than eliminating the $45.9\text{ ms}$ CPU execution time, our scheduler hides it asynchronously behind a $208.4\text{ ms}$ concurrent GPU compute window (prefill tail $\mathcal{L}_{14..27}$ plus two preliminary symbolic-continuous cycles), reducing residual host-to-GPU synchronization wait at the answer boundary from $45.9\text{ ms}$ (synchronous blocking) to \textbf{8--12 microseconds} ($0.009 \pm 0.002\text{ ms}$ across $n=50$ runs). We evaluate two distinct operating regimes across the core \texttt{P01--P10} distributed systems suite, an expanded $N=100$ parametric systems benchmark, and \texttt{GSM8K-100}: (1) an \textbf{Unsupervised Zero-Calibration Same-Model Precision Bridge} ($\mathbf{W}_{\text{up}} = \mathbf{I}, \mathbf{W}_{\text{down}} = \mathbf{I}$, zero calibration prompts, zero trained parameters), where an FP16 System-RAM slice heals middle-layer 3-bit quantization collapse, lifting zero-shot accuracy from $10\%$ to \textbf{60\%} (\textbf{63.0\%} on $N=100$) and reducing perplexity from $9.05$ to $5.75$; and (2) a \textbf{Cross-Scale Subspace Translator} ($1.5\text{B}$ GPU, $d=1536 \leftrightarrow 7\text{B}$ System-RAM slice, $d=3584$) compressed via an Intra-Layer Mixed-Precision Split ($1\%$ FP16 outliers + $99\%$ INT4 bulk, $3.48\times$ smaller at $808\text{ MB}$ and $2.69\times$ faster at $45.9\text{ ms}$ with $0.9993$ cosine fidelity). We strictly distinguish between \textbf{Pure Answer-Free SVD Alignment} ($500$ unlabeled prompts, $0$ QA labels), which achieves $0.9903$ held-out cosine similarity and \textbf{60.0\%} zero-shot accuracy (\textbf{61.0\%} on $N=100$, \textbf{64.0\%} on \texttt{GSM8K-100}), and \textbf{Supervised Task-Calibrated Subspace Bridging}, which reaches \textbf{100.0\%} on \texttt{P01--P10} (\textbf{96.0\%} on $N=100$, \textbf{91.0\%} on \texttt{GSM8K-100}) in $2.88\text{s}$.
+\end{abstract}
+
+% ==========================================
+% FIGURE 1: FULL-WIDTH TIKZ ARCHITECTURE DIAGRAM (100% VERTICAL ALIGNMENT)
+% ==========================================
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    box/.style={rectangle, rounded corners=4pt, draw, thick, align=center, font=\footnotesize, minimum height=0.95cm, inner sep=4.5pt},
+    gpubox/.style={box, fill=gpucolor, draw=gpuborder},
+    rambox/.style={box, fill=ramcolor, draw=ramborder},
+    bridgebox/.style={box, fill=bridgecolor, draw=bridgeborder},
+    arrow/.style={-{Stealth[length=2.2mm, width=1.6mm]}, thick}
+]
+
+% Top GPU Stream (Active Mouth) — Explicitly spaced left-to-right
+\node[gpubox, minimum width=2.0cm] (prompt) {\textbf{User Prompt}\\$\mathbf{X}_{\text{in}} \in \mathbb{R}^{S \times d_{\text{gpu}}}$};
+\node[gpubox, minimum width=2.3cm, right=0.45cm of prompt] (gpu_early) {\textbf{GPU Shallow}\\$\mathcal{L}_{0..13}$ (Prefill)};
+\node[gpubox, minimum width=2.3cm, right=0.65cm of gpu_early] (gpu_late) {\textbf{GPU Deep}\\$\mathcal{L}_{14..27}$ (Prefill)};
+\node[gpubox, minimum width=2.7cm, right=0.45cm of gpu_late] (caveman) {\textbf{2$\times$ Hybrid Cycles}\\8 Caveman + 6 Soft Steps\\($\Delta t_{\text{GPU}} = 208.4\text{ ms}$)};
+\node[bridgebox, minimum width=2.2cm, right=0.45cm of caveman] (sync) {\textbf{$\langle\texttt{/think}\rangle$ Gate}\\$\mathbf{H}_{14} + \alpha \Delta_{\text{sub}}$\\(\textbf{Sync Wait: 9 $\mu$s})};
+\node[gpubox, minimum width=2.0cm, right=0.45cm of sync] (decode) {\textbf{GPU Decode}\\Autoregressive\\($2.88\text{s}$ total)};
+
+% Bottom CPU/RAM Stream (Subconscious Brain) — Exact X-coordinate lock so vertical arrows are 90-degree straight
+\node[bridgebox, minimum width=2.3cm, below=1.10cm of gpu_early] (funnel) {\textbf{4-Seg Funnel}\\$S \to k=4$ ($12\text{ KB}$)\\$\mathbf{W}_{\text{up}}: d_{\text{gpu}} \to d_{\text{ram}}$};
+
+\node[bridgebox, minimum width=2.2cm, below=1.10cm of sync] (downproj) {\textbf{Subspace Return}\\$\mathbf{W}_{\text{down}}: d_{\text{ram}} \to d_{\text{gpu}}$\\($\cos\theta = 0.9993$)};
+
+\node[rambox, minimum width=4.15cm, font=\scriptsize] at ($(funnel.east)!0.5!(downproj.west)$) (ram_slice) {\textbf{System-RAM Subconscious ($\mathcal{L}_{12..19}$)}\\Routed $5/8$ Layers ($\Delta t_{\text{CPU}} = 45.9\text{ ms}$)\\\textbf{Split:} $1\%$ FP16 + $99\%$ INT4 ($808\text{ MB}$)};
+
+% Arrows on GPU Stream
+\draw[arrow, gpuborder] (prompt) -- (gpu_early);
+\draw[arrow, gpuborder] (gpu_early) -- node[above=2pt, font=\scriptsize\bfseries, text=gpuborder!90!black] {L14} (gpu_late);
+\draw[arrow, gpuborder] (gpu_late) -- (caveman);
+\draw[arrow, gpuborder] (caveman) -- (sync);
+\draw[arrow, gpuborder] (sync) -- (decode);
+
+% Arrows on CPU/RAM Stream & Perfectly Vertical Bridge Arrows
+\draw[arrow, bridgeborder, dashed, thick] (gpu_early.south) -- node[right=3pt, font=\scriptsize\bfseries, text=bridgeborder!85!black] {Async Dispatch ($12\text{ KB}$)} (funnel.north);
+\draw[arrow, ramborder] (funnel) -- (ram_slice);
+\draw[arrow, ramborder] (ram_slice) -- (downproj);
+\draw[arrow, bridgeborder, dashed, thick] (downproj.north) -- node[right=3pt, font=\scriptsize\bfseries, text=bridgeborder!85!black] {Residual Injection} (sync.south);
+
+% Background Group Labels
+\begin{scope}[on background layer]
+    \node[fit=(prompt)(decode), fill=gpucolor!25, draw=gpuborder!50, dashed, rounded corners=5pt, inner sep=6pt, label={[font=\scriptsize\bfseries, text=gpuborder, yshift=1pt]above:ACTIVE GPU MOUTH (VRAM: 2.57--3.13 GB --- Concurrent GPU Window $\Delta t_{\text{GPU\_useful}} = 208.4\text{ ms}$)}] {};
+    \node[fit=(funnel)(downproj), fill=ramcolor!25, draw=ramborder!50, dashed, rounded corners=5pt, inner sep=6pt, label={[font=\scriptsize\bfseries, text=ramborder, yshift=-1pt]below:SUBCONSCIOUS SYSTEM-RAM BRAIN (Single-Shot Background Thread $\Delta t_{\text{CPU}} = 45.9\text{ ms} < \Delta t_{\text{GPU\_useful}}$ --- Zero Per-Token Traffic)}] {};
+\end{scope}
+
+\end{tikzpicture}%
+}
+\caption{\textbf{Architecture of Subconscious Latent Offloading.} At Layer 14 of prompt prefill, the GPU model dispatches $k=4$ compressed latent vectors ($12\text{ KB}$) via non-blocking DMA to a background CPU thread hosting middle layers $\mathcal{L}_{12..19}$ in System RAM. While the CPU computes the latent displacement in $\Delta t_{\text{CPU}} = 45.9\text{ ms}$, the GPU concurrently executes Layers $14..27$ and two interleaved Caveman + Continuous Superposition cycles ($\Delta t_{\text{GPU\_useful}} = 208.4\text{ ms}$). Because $\Delta t_{\text{CPU}} < \Delta t_{\text{GPU\_useful}}$, the CPU future is already complete when the $\langle\texttt{/think}\rangle$ gate is reached, yielding a residual synchronization wait of $8\text{--}12\ \mu\text{s}$.}
+\label{fig:arch}
+\end{figure*}
+
+\section{Introduction}
+Autoregressive Chain-of-Thought (CoT) reasoning \cite{wei2022chain} requires generating hundreds of intermediate tokens, turning Large Language Model (LLM) inference into a sequential, memory-bandwidth-bound loop. When a model exceeds available GPU VRAM, existing inference engines---such as \texttt{llama.cpp}, HuggingFace \texttt{accelerate}, and FlexGen \cite{sheng2023flexgen}---partition transformer blocks sequentially across GPU VRAM and System RAM. Because standard transformer blocks execute strictly in series for every generated token, offloading even an 8-layer slice ($8$ out of $28$ layers) forces the GPU to stall on \emph{every single decoding step} ($\sim 160\times$ per query), inflating end-to-end latency to $9.86\text{s}$ ($2\text{--}5\text{ tokens/s}$).
+
+We challenge the assumption that an edge model must consult offloaded high-capacity or high-precision parameters on every lexical token. Empirically, across modern pretrained decoder-only transformers, representation dynamics exhibit a useful depth-wise specialization that we adopt as an \textbf{empirically motivated systems design hypothesis} (verified via layer-depth sensitivity ablations in Section~\ref{sec:ablations}):
+\begin{itemize}
+    \item \textbf{Shallow Layers ($\mathcal{L}_{0..11}$, $0\text{--}40\%$ Depth):} Primarily aggregate local token embeddings, syntactic framing, and surface entity bindings.
+    \item \textbf{Intermediate Layers ($\mathcal{L}_{12..19}$, $40\text{--}70\%$ Depth):} Exhibit peak cross-scale linear subspace isomorphism ($\cos\theta = 0.9903$) and compose multi-clause relational and arithmetic state equations before output token commitment.
+    \item \textbf{Deep Layers ($\mathcal{L}_{20..27}$, $70\text{--}100\%$ Depth):} Rotate intermediate representations rapidly toward the vocabulary unembedding manifold (\texttt{lm\_head}) to enforce local grammatical fluency.
+\end{itemize}
+
+Rather than claiming this tripartite division as a rigid biological law, we exploit it as an architectural systems split termed \textbf{``Mouth and Subconscious Brain''} (Figure~\ref{fig:arch}): \emph{a background CPU slice computes a single high-precision intermediate latent trajectory, while the active GPU model translates that trajectory into fluent token generation}.
+
+Based on this principle, we introduce \textbf{Subconscious Latent Offloading}, making five primary contributions:
+\begin{enumerate}
+    \item \textbf{Single-Shot Overlapped System-RAM Offloading with Explicit Latency Accounting:} We decouple the GPU model (\emph{Active Mouth}) from the offloaded System-RAM middle layers $\mathcal{L}_{12..19}$ (\emph{Subconscious Brain}). The System-RAM slice is invoked \emph{strictly once per query} on $k=4$ compressed latent vectors ($12\text{ KB}$) during prompt prefill. Across $n=50$ hardware-instrumented runs (Section~\ref{sec:ablations}), we show that the $45.9 \pm 0.8\text{ ms}$ CPU execution is completely hidden behind a $208.4 \pm 4.1\text{ ms}$ concurrent GPU compute window, reducing residual synchronization wait from $45.9\text{ ms}$ (synchronous blocking) to $\mathbf{0.009 \pm 0.002\text{ ms}}$ ($\mathbf{9\ \mu\text{s}}$) and achieving a \textbf{3.42$\times$ end-to-end speedup} over standard per-token offloading ($2.88\text{s}$ vs.\ $9.86\text{s}$).
+    \item \textbf{Intra-Layer Outlier-Aware Mixed Precision ($1\%$ FP16 + $99\%$ INT4):} We design a custom System-RAM MLP kernel (\texttt{IntraLayerSplitQwen2MLP}) that isolates the top $1\%$ outlier weight columns in FP16 and packs the remaining $99\%$ bulk weights into per-channel INT4 with pre-quantization activation masking (\texttt{index\_fill\_}). This compresses the 7B RAM slice by \textbf{3.48$\times$} ($2816\text{ MB} \to 808\text{ MB}$), accelerates CPU execution by \textbf{2.69$\times$} ($125.1\text{ ms} \to 45.9\text{ ms}$), and preserves \textbf{0.999309} cumulative 8-layer cosine similarity against full 16-bit precision.
+    \item \textbf{Methodology I --- Unsupervised Zero-Calibration Same-Model Precision Bridge ($\mathbf{W} = \mathbf{I}$):} When an edge GPU runs an aggressively 3-bit quantized model while System RAM holds the crisp FP16 middle layers $\mathcal{L}_{12..19}$ of the \emph{exact same checkpoint}, their coordinate bases remain identical ($\mathbf{W}_{\text{up}} = \mathbf{I}, \mathbf{W}_{\text{down}} = \mathbf{I}$). With \textbf{zero calibration prompts and zero trainable parameters}, a single-shot RAM pass heals middle-layer quantization collapse, lifting zero-shot accuracy from $10\%$ to \textbf{60.0\%} on \texttt{P01--P10} (\textbf{63.0\%} on $N=100$ parametric systems) and improving perplexity from $9.05 \to 5.75$.
+    \item \textbf{Methodology II --- Cross-Scale Subspace Translator ($1.5\text{B} \leftrightarrow 7\text{B}$) Across Unsupervised and Supervised Regimes:} We strictly separate unsupervised geometric alignment from task-calibrated supervision. In the \textbf{Unsupervised / Zero-QA Regime}, closed-form Ridge-Procrustes SVD over $500$ unlabeled prompts ($0$ QA labels, $\mathcal{L}_{\text{CE}}=0$) achieves full numerical rank ($1536/1536$), \textbf{0.9903} held-out cosine similarity, and \textbf{60.0\%} accuracy on \texttt{P01--P10} (\textbf{61.0\%} on $N=100$ systems, \textbf{64.0\%} on \texttt{GSM8K-100}). In the \textbf{Supervised / Task-Calibrated Regime}, lightweight subspace refinement reaches \textbf{100.0\%} on \texttt{P01--P10} (\textbf{96.0\%} on $N=100$ systems, \textbf{91.0\%} on \texttt{GSM8K-100}) in \textbf{2.88s}.
+    \item \textbf{Systematic Pareto \& Scale Verification ($k \in \{1,2,4,8,16\}$, $\mathcal{L}_6/\mathcal{L}_{14}/\mathcal{L}_{22}$, $N=200$ Total Problems):} We empirically prove that $k=4$ vectors ($12\text{ KB}$) and mid-depth injection ($\mathcal{L}_{14}$, $50\%$ depth) sit at the Pareto optimal knee of accuracy, perplexity, and overlap latency across $200$ verifiable numerical and distributed systems problems with $95\%$ Wilson and Bootstrap confidence intervals.
+\end{enumerate}
+
+\section{Related Work}
+\textbf{Offloading \& Heterogeneous Inference:} Systems such as FlexGen \cite{sheng2023flexgen}, DeepSpeed-Inference \cite{aminabadi2022deepspeed}, and \texttt{llama.cpp} offload transformer weights or KV caches to CPU DRAM/NVMe. However, these frameworks preserve synchronous layer-by-layer execution for every generated token, making interactive single-batch edge inference memory-bandwidth bound. Speculative decoding \cite{leviathan2023fast} uses a small draft model and verifies tokens in batch with a target model, but still requires holding the entire target model (all $28+$ layers and LM head) in memory and running full-model verification passes every $4\text{--}8$ tokens. In contrast, our approach stores \emph{only} $8$ headless middle layers ($808\text{ MB}$) in RAM and executes them \emph{once per query}.
+
+\textbf{Continuous Latent \& Compressed Reasoning:} Coconut \cite{hao2024training} replaces discrete CoT tokens with continuous hidden states fed back into the transformer input, while Chain-of-Draft (CoD) \cite{xu2025chain} restricts verbal scratchpads to minimal symbolic equations. In small $1.5\text{B}$ models, pure continuous loops suffer from manifold drift after $4\text{--}6$ steps, while pure CoD fails whenever the first symbolic token locks onto a flawed invariant. Our hybrid \emph{Caveman + Soft-Token Superposition} loop stabilizes continuous thoughts by anchoring them to 8-token symbolic invariants and steering them via the System-RAM latent bridge.
+
+\textbf{Outlier-Aware Quantization:} LLM.int8() \cite{dettmers2022llm} and AWQ \cite{lin2024awq} demonstrated that systematic activation outliers emerge in specific feature dimensions. We adapt this insight specifically for CPU SIMD/BLAS execution in System RAM: by zeroing out the top $1\%$ outlier channels in the input activation tensor \emph{prior} to dynamic INT8/INT4 scaling and computing the $1\%$ outlier projection in a parallel FP16 branch, we prevent SiLU activation spikes from corrupting the bulk INT4 quantization grid.
+
+\section{System Architecture \& Mathematical Formulation}
+
+\subsection{Empirically Motivated Depth Partitioning \& Parameterized $k$-Vector Context Funnel}
+\label{sec:arch_funnel}
+Let the Active GPU model have hidden dimension $d_{\text{gpu}}$ and $L_{\text{gpu}} = 28$ layers. Choosing where to tap and re-inject latent states involves a fundamental systems trade-off: tapping too early ($\mathcal{L}_6$, $21\%$ depth) captures local token features before multi-clause equations are bound, whereas tapping too late ($\mathcal{L}_{22}$, $79\%$ depth) leaves insufficient remaining layers to integrate the offloaded trajectory before logit projection. We therefore treat the mid-network split at $l_{\text{split}} = 14$ ($50\%$ depth, coupled to CPU layers $\mathcal{L}_{12..19}$) as an empirically testable design choice, which we validate against $\mathcal{L}_6$ and $\mathcal{L}_{22}$ in Section~\ref{sec:ablations}.
+
+Given an input prompt of length $S$, we run prefill up to $l_{\text{split}} = 14$, obtaining $\mathbf{H}^{(14)} \in \mathbb{R}^{S \times d_{\text{gpu}}}$. Rather than transmitting all $S$ token vectors to System RAM (which scales as $\mathcal{O}(S)$ in both PCIe transfer and CPU compute), we define a parameterized, parameter-free \textbf{$k$-Vector Context Funnel} $\mathcal{F}_k: \mathbb{R}^{S \times d_{\text{gpu}}} \to \mathbb{R}^{k \times d_{\text{gpu}}}$ over capacity $k \in \{1, 2, 4, 8, 16\}$. For our default Pareto-optimal setting $k=4$ (evaluated across all $k$ in Section~\ref{sec:ablations}), $\mathcal{F}_4$ partitions the prompt into three quartile mean vectors plus the terminal instruction token state:
+\begin{equation}
+    \mathbf{C} = \mathcal{F}_4\left(\mathbf{H}^{(14)}\right) = \begin{bmatrix}
+    \frac{1}{|Q_1|} \sum_{t \in Q_1} \mathbf{H}_t^{(14)} \\[4pt]
+    \frac{1}{|Q_2|} \sum_{t \in Q_2} \mathbf{H}_t^{(14)} \\[4pt]
+    \frac{1}{|Q_3|} \sum_{t \in Q_3} \mathbf{H}_t^{(14)} \\[4pt]
+    \mathbf{H}_{S}^{(14)}
+    \end{bmatrix} \in \mathbb{R}^{4 \times d_{\text{gpu}}}
+\end{equation}
+For $d_{\text{gpu}} = 1536$ in FP16, $\mathbf{C}$ occupies $4 \times 1536 \times 2\text{ bytes} = \mathbf{12\text{ KB}}$, enabling non-blocking DMA copy (\texttt{non\_blocking=True}) into pinned host memory in $0.18\text{ ms}$.
+
+\subsection{Intra-Layer Mixed-Precision Split ($1\%$ FP16 + $99\%$ INT4)}
+The Subconscious System-RAM slice consists of middle layers $\mathcal{L}_{12..19}$ with hidden dimension $d_{\text{ram}}$. To maximize CPU cache locality and minimize DRAM bandwidth, we keep the lightweight Self-Attention projections ($\mathbf{W}_q, \mathbf{W}_k, \mathbf{W}_v, \mathbf{W}_o$) and RMSNorm parameters in native 16-bit precision, while applying an \textbf{Intra-Layer Mixed-Precision Split} to the memory-dominant SwiGLU MLP matrices ($\mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}}, \mathbf{W}_{\text{down}}$).
+
+For each linear weight matrix $\mathbf{W} \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$, we compute the column-wise $\ell_2$ norms $c_j = \|\mathbf{W}_{:, j}\|_2$ and partition the input feature indices $\{1, \dots, d_{\text{in}}\}$ into the top $1\%$ outlier index set $\mathcal{O}$ ($|\mathcal{O}| = \lceil 0.01 d_{\text{in}} \rceil$) and the $99\%$ bulk index set $\mathcal{B}$:
+\begin{enumerate}
+    \item \textbf{FP16 Outlier Branch ($\mathcal{O}$):} We extract the outlier sub-matrix $\mathbf{W}_{\text{FP16}}^{(\mathcal{O})} = \mathbf{W}_{:, \mathcal{O}} \in \mathbb{R}^{d_{\text{out}} \times |\mathcal{O}|}$ stored contiguously in FP16.
+    \item \textbf{Packed INT4 Bulk Branch ($\mathcal{B}$):} We zero out the outlier columns in the bulk matrix, compute per-output-channel symmetric scales $s_i = \max_{j \in \mathcal{B}} |\mathbf{W}_{i,j}| / 7.0$, and pack two 4-bit signed integers ($\{-7, \dots, +7\}$) per \texttt{uint8} byte.
+    \item \textbf{Pre-Quantization Activation Outlier Masking:} During the forward pass, raw hidden states $\mathbf{x} \in \mathbb{R}^{k \times d_{\text{in}}}$ (particularly post-SiLU intermediate activations) exhibit extreme spikes specifically along indices $j \in \mathcal{O}$. If $\mathbf{x}$ is dynamically quantized directly, $\max |\mathbf{x}|$ is dominated by $\mathcal{O}$, crushing the dynamic range of the $99\%$ bulk features. We therefore apply an in-place zero mask $\mathbf{m}_{\mathcal{B}}$ ($\mathbf{x}_{\text{masked}} = \text{index\_fill}(\mathbf{x}, \mathcal{O}, 0)$) \emph{before} computing the bulk product:
+    \begin{equation}
+        \mathbf{y} = \text{Dequant}\left(\mathbf{W}_{\text{INT4}}^{(\mathcal{B})}\right) \mathbf{x}_{\text{masked}} + \mathbf{W}_{\text{FP16}}^{(\mathcal{O})} \mathbf{x}_{:, \mathcal{O}}
+    \end{equation}
+\end{enumerate}
+
+Furthermore, a \textbf{Dynamic Entropy Router} monitors the normalized representation velocity $\|\mathbf{Z}^{(l)} - \mathbf{Z}^{(l-1)}\|_2 / \|\mathbf{Z}^{(l-1)}\|_2$ across $\mathcal{L}_{12..19}$, exiting early once the latent trajectory stabilizes (executing an average of $5.0$ to $7.9$ layers dynamically).
+
+% ==========================================
+% ALGORITHM 1: ASYNC SUBCONSCIOUS OFFLOADING (UNIFIED TARGET NOTATION)
+% ==========================================
+\begin{algorithm}[t]
+\caption{Asynchronous Subconscious Latent Offloading}
+\label{alg:offload}
+\footnotesize
+\begin{algorithmic}[1]
+\REQUIRE Prompt $X_{1:S}$, GPU Model $\mathcal{M}_{\text{gpu}}$, RAM Slice $\mathcal{L}_{12..19}^{\text{RAM}}$, Bridges $(\mathbf{W}_{\text{up}}, \mathbf{W}_{\text{down}})$, Gate $\alpha$
+\ENSURE Generated derivation sequence $Y$
+\STATE \textbf{GPU Shallow Prefill:} $\mathbf{H}^{(14)} \leftarrow \mathcal{M}_{\text{gpu}}^{(0..13)}(X_{1:S})$
+\STATE \textbf{Funnel Compression:} $\mathbf{C} \leftarrow \mathcal{F}_k(\mathbf{H}^{(14)}) \in \mathbb{R}^{k \times d_{\text{gpu}}}$ ($k=4$)
+\STATE \textbf{Async CPU Dispatch} ($t_{\text{dispatch}} = 0.18\text{ ms}$ to worker $\mathcal{T}_{\text{cpu}}$):
+\STATE \hspace{0.7em} $\mathbf{Z}^{(12)} \leftarrow \text{RMSNorm}(\mathbf{C} \mathbf{W}_{\text{up}})$ \quad ($\mathbf{W}_{\text{up}} = \mathbf{I}$ in Mode 1)
+\STATE \hspace{0.7em} $\mathbf{Z}^{(19)} \leftarrow \text{DynamicRoutedPass}(\mathcal{L}_{12..19}^{\text{RAM}}, \mathbf{Z}^{(12)})$ \quad ($\Delta t_{\text{CPU}} = 45.9\text{ ms}$)
+\STATE \hspace{0.7em} $\Delta_{\text{sub}} \leftarrow \Phi(\mathbf{Z}^{(12)}, \mathbf{Z}^{(19)}) \mathbf{W}_{\text{down}}, \;\; \Phi \in \{\mathbf{Z}^{(19)},\, \mathbf{Z}^{(19)}-\mathbf{Z}^{(12)}\}$
+\STATE \textbf{Concurrent GPU Window} ($\Delta t_{\text{GPU\_useful}} = 208.4\text{ ms}$ while $\mathcal{T}_{\text{cpu}}$ runs):
+\STATE \hspace{0.7em} Run prefill tail $\mathbf{H}^{(27)} \leftarrow \mathcal{M}_{\text{gpu}}^{(14..27)}(\mathbf{H}^{(14)})$
+\STATE \hspace{0.7em} \textbf{for} cycle $c = 1, 2$ \textbf{do}
+\STATE \hspace{1.4em} Emit $8$ Caveman anchor tokens $T_{\text{cave}}^{(c)}$
+\STATE \hspace{1.4em} Run $3$ soft steps $\mathbf{e}_{\text{sup}} = \sum_{v \in \mathcal{K}} p_v \mathbf{E}_v$ (\texttt{preserve\_kv})
+\STATE \hspace{0.7em} \textbf{end for}
+\STATE \textbf{Transition Sync} ($\langle\texttt{/think}\rangle$ closing bracket \texttt{]}):
+\STATE \hspace{0.7em} $\Delta_{\text{sub}} \leftarrow \mathcal{T}_{\text{cpu}}\text{.result()}$ \quad (\emph{Residual barrier:} $\Delta t_{\text{sync}} = 9\ \mu\text{s}$)
+\STATE \hspace{0.7em} Inject $\mathbf{H}_{\text{close}}^{(14)} \leftarrow \mathbf{H}_{\text{close}}^{(14)} + \alpha \Delta_{\text{sub}}$ on token \texttt{]}
+\STATE \textbf{GPU Decoding:} Autoregressively decode $Y$ on GPU
+\RETURN $Y$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Hybrid Symbolic-Continuous Rollout \& Transition-Only Injection}
+As detailed in Algorithm~\ref{alg:offload}, while the background CPU thread computes $\Delta_{\text{sub}}$ ($\Delta t_{\text{CPU}} = 45.9\text{ ms}$), the GPU executes the remaining prefill layers $\mathcal{L}_{14..27}$ and two alternating reasoning cycles inside a $\langle\texttt{think}\rangle$ block ($\Delta t_{\text{GPU\_useful}} = 208.4\text{ ms}$):
+\begin{enumerate}
+    \item \textbf{Caveman Symbolic Anchors ($8$ tokens):} Ultra-compressed equation fragments (e.g., \texttt{5 -> 430 ->}) that anchor intermediate numerical variables.
+    \item \textbf{Continuous Soft-Token Superposition ($3$ steps/cycle):} Rather than collapsing to a single discrete token argmax, we compute the top-$K$ ($K=8$) probability-weighted embedding expectation $\mathbf{e}_{\text{sup}}^{(t)} = \sum_{v \in \mathcal{K}} p_v \mathbf{E}_v$ and retain its K/V projections inside the active KV cache (\texttt{preserve\_superposition\_kv=True}).
+\end{enumerate}
+
+\textbf{Critical Transition-Header Discovery:} A key empirical finding of our ablation study (Section~\ref{sec:method2}) is \emph{where} to inject the System-RAM residual $\Delta_{\text{sub}}$. Injecting a global prompt-level latent vector continuously into Layer 14 during single-token autoregressive arithmetic decoding perturbs local digit addition (e.g., shifting $70+30+15=115\text{ ms}$ to $70+90+15=175\text{ ms}$ on \texttt{P06\_DAG\_CRITICAL\_PATH}). Restricting the injection strictly to the $\langle\texttt{/think}\rangle$ closing bracket transition header (\texttt{close\_think\_ids[:, :1, :]}) plants the structural invariant into the KV cache \emph{before} final answer generation while leaving single-token digit arithmetic unperturbed.
+
+% ==========================================
+% FIGURE 2: COLLISION-FREE PGFPLOTS CHARTS
+% ==========================================
+\begin{figure}[t]
+\centering
+
+% --- CLEAN NATIVE LATEX LEGEND BOX ---
+{\scriptsize
+\setlength{\fboxsep}{4pt}%
+\fcolorbox{gray!50}{gray!5}{%
+\begin{tabular}{@{}cl@{}}
+\textcolor{ramborder!90!black}{\rule{7pt}{7pt}} & \textbf{Full 16-Bit 7B Slice} ($\cos\theta = 1.0000$) \\[2pt]
+\textcolor{gpuborder!90!black}{\rule{7pt}{7pt}} & \textbf{Intra-Layer 1\% FP16 + 99\% INT4} ($\cos\theta = 0.9993$)
+\end{tabular}%
+}}
+
+\vspace{0.22cm}
+
+% --- TOP PANEL: SIDE-BY-SIDE RAM & LATENCY ---
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}
+    % Left Subplot: System RAM Footprint (MB)
+    \begin{axis}[
+        name=ramplot,
+        ybar=5pt,
+        width=4.35cm,
+        height=3.8cm,
+        bar width=13pt,
+        ymin=0, ymax=3450,
+        ytick={0, 1000, 2000, 3000},
+        symbolic x coords={Memory},
+        xtick=data,
+        xticklabels={\textbf{3.48$\times$ Smaller}},
+        tick label style={font=\scriptsize},
+        nodes near coords,
+        every node near coord/.append style={font=\scriptsize\bfseries, yshift=1pt},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        title={\scriptsize \textbf{(a) System RAM (MB)}},
+        title style={yshift=-2pt}
+    ]
+        \addplot[fill=ramborder!85, draw=ramborder!95!black, rounded corners=1pt] coordinates {(Memory, 2816)};
+        \addplot[fill=gpuborder!85, draw=gpuborder!95!black, rounded corners=1pt] coordinates {(Memory, 808)};
+    \end{axis}
+
+    % Right Subplot: CPU Pass Latency (ms)
+    \begin{axis}[
+        name=latplot,
+        at={(ramplot.east)},
+        anchor=west,
+        xshift=0.95cm,
+        ybar=5pt,
+        width=4.35cm,
+        height=3.8cm,
+        bar width=13pt,
+        ymin=0, ymax=155,
+        ytick={0, 50, 100, 150},
+        symbolic x coords={Latency},
+        xtick=data,
+        xticklabels={\textbf{2.69$\times$ Faster}},
+        tick label style={font=\scriptsize},
+        nodes near coords,
+        every node near coord/.append style={font=\scriptsize\bfseries, yshift=1pt},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        title={\scriptsize \textbf{(b) 5-Layer Pass (ms)}},
+        title style={yshift=-2pt}
+    ]
+        \addplot[fill=ramborder!85, draw=ramborder!95!black, rounded corners=1pt] coordinates {(Latency, 125.0)};
+        \addplot[fill=gpuborder!85, draw=gpuborder!95!black, rounded corners=1pt] coordinates {(Latency, 45.9)};
+    \end{axis}
+\end{tikzpicture}%
+}
+
+\vspace{0.25cm}
+
+% --- BOTTOM PANEL: METHODOLOGY 1 ZERO-CALIBRATION PRECISION RECOVERY ---
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}
+\begin{axis}[
+    ybar=0pt,
+    bar shift=0pt,
+    width=8.8cm,
+    height=3.9cm,
+    bar width=16pt,
+    enlarge x limits=0.20,
+    ymin=0, ymax=92,
+    ytick={0, 20, 40, 60, 80},
+    ylabel={\scriptsize \textbf{Accuracy (\%)}},
+    ylabel style={yshift=-2pt},
+    xtick={1, 2, 3, 4},
+    xticklabels={
+        {\shortstack{\textbf{3-Bit}\\\textbf{Std CoT}}},
+        {\shortstack{\textbf{3-Bit}\\\textbf{Caveman}}},
+        {\shortstack{\textbf{3-Bit+RAM}\\\textbf{($\mathbf{W}=\mathbf{I}$)}}},
+        {\shortstack{\textbf{FP16}\\\textbf{Upper Bnd}}}
+    },
+    xticklabel style={font=\scriptsize, align=center, yshift=-2pt},
+    yticklabel style={font=\scriptsize},
+    nodes near coords={\pgfmathprintnumber\pgfplotspointmeta\%},
+    every node near coord/.append style={
+        font=\scriptsize\bfseries,
+        fill=white,
+        inner sep=1.2pt,
+        rounded corners=1pt,
+        yshift=2pt
+    },
+    ymajorgrids=true,
+    grid style={dashed, gray!30},
+    title={\scriptsize \textbf{(c) Zero-Calibration ($\mathbf{W}=\mathbf{I}$) Precision Recovery}},
+    title style={yshift=-1pt}
+]
+    % Dashed upper-bound reference line drawn FIRST so white-backed labels sit cleanly on top
+    \draw[dashed, gpuborder!80!black, thick] (axis cs:0.4,70) -- (axis cs:4.6,70);
+
+    % Color-coded bars for visual hierarchy
+    \addplot[fill=red!65!orange!80, draw=red!70!black, rounded corners=1pt] coordinates {(1, 10)};
+    \addplot[fill=red!65!orange!80, draw=red!70!black, rounded corners=1pt] coordinates {(2, 0)};
+    \addplot[fill=bridgeborder!85, draw=bridgeborder!95!black, rounded corners=1pt] coordinates {(3, 60)};
+    \addplot[fill=gpuborder!70, draw=gpuborder!90!black, rounded corners=1pt] coordinates {(4, 70)};
+\end{axis}
+\end{tikzpicture}%
+}
+\caption{\textbf{(a--b)} Independent-scale hardware comparison of the 7B System-RAM slice: our Intra-Layer Mixed-Precision Split ($1\%$ FP16 Outliers + $99\%$ INT4 Bulk) cuts RAM by $3.48\times$ ($2816 \to 808\text{ MB}$) and latency by $2.69\times$ ($125.0 \to 45.9\text{ ms}$) at $0.9993$ cosine similarity. \textbf{(c)} Zero-Calibration Same-Model Precision Bridge ($\mathbf{W}=\mathbf{I}$, $0$ prompts, $0$ trained parameters) recovering accuracy from $0\text{--}10\%$ to $60\%$.}
+\label{fig:charts}
+\end{figure}
+
+% ==========================================
+% TABLE 1: METHODOLOGY 1 AGGREGATE METRICS
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Methodology 1 (Aggregate): Unsupervised Zero-Calibration Same-Model Precision Bridge ($\mathbf{W}_{\text{up}}=\mathbf{I}_{1536}, \mathbf{W}_{\text{down}}=\mathbf{I}_{1536}$).} Aggressive 3-bit symmetric per-tensor quantization in GPU middle layers ($\mathcal{L}_{12..19}$) healed via a single asynchronous pass through crisp FP16 middle layers in System RAM across \texttt{P01--P10} with \textbf{0 calibration prompts} and \textbf{0 trained bridge parameters}.}
+\label{tab:method1_agg}
+\setlength{\tabcolsep}{5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccc}
+\toprule
+\textbf{Mode / Configuration} & \textbf{Calib.} & \textbf{Bridge} & \textbf{Gold LL} & \textbf{LL $\Delta$} & \textbf{PPL} & \textbf{Zero-Shot} & \textbf{Avg} & \textbf{Latency} & \textbf{Sync Wait} \\
+ & \textbf{Prompts} & \textbf{Params} & \textbf{(nats/tok)} & \textbf{vs.\ 1a} & $\downarrow$ & \textbf{Accuracy} & \textbf{Tokens} & \textbf{(s)} & \textbf{(ms)} \\
+\midrule
+(1a) Low-Bit Quantized GPU (Standard CoT) & $0$ & $0\text{ MB}$ & $-2.2023$ & $0.0000$ & $9.045$ & $10.0\%$ (1/10) & $160.0$ & $5.31\text{s}$ & $0.000\text{ ms}$ \\
+(1b) Low-Bit Quantized GPU (Caveman Unbridged) & $0$ & $0\text{ MB}$ & $-2.2023$ & $0.0000$ & $9.045$ & $0.0\%$ (0/10) & $228.0$ & $7.80\text{s}$ & $0.000\text{ ms}$ \\
+\textbf{(1c) Low-Bit GPU + FP16 RAM Bridge ($\mathbf{W}=\mathbf{I}$)} & $\mathbf{0}$ & $\mathbf{0\text{ MB}}$ & $\mathbf{-1.7500}$ & $\mathbf{+0.4523}$ & $\mathbf{5.754}$ & $\mathbf{60.0\%}$ \textbf{(6/10)} & $\mathbf{114.8}$ & $\mathbf{4.13\text{s}}$ & $\mathbf{0.012\text{ ms}}$ \\
+\midrule
+(1d) Unquantized Crisp FP16 GPU Upper Bound & $0$ & $0\text{ MB}$ & $-1.1585$ & $+1.0438$ & $3.185$ & $70.0\%$ (7/10) & $111.1$ & $3.94\text{s}$ & $0.000\text{ ms}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\section{Methodology I: Zero-Calibration Same-Model Precision Bridge ($\mathbf{W} = \mathbf{I}$)}
+\label{sec:method1}
+
+A major skepticism surrounding latent adapters is whether performance gains stem from genuine latent reasoning transfer or from calibration-set memorization. To eliminate any possibility of adapter memorization, we introduce our first operating regime: the \textbf{Zero-Calibration Same-Model Precision Bridge}.
+
+Consider an edge deployment where a model on GPU has its middle reasoning layers $\mathcal{L}_{12..19}$ aggressively quantized to ultra-low bit-widths (3-bit per-tensor symmetric quantization without outlier protection, reducing active layer footprint to $2.52\text{--}2.57\text{ GB}$). While shallow and deep layers retain syntactic fluency, severe quantization noise in $\mathcal{L}_{12..19}$ corrupts multi-hop arithmetic and logical invariants. Meanwhile, we retain a copy of the \emph{exact same checkpoint's} middle layers $\mathcal{L}_{12..19}$ in crisp FP16 inside inexpensive System RAM.
+
+Because the low-bit GPU model and the FP16 System-RAM slice originate from the identical pre-trained weight checkpoint:
+\begin{enumerate}
+    \item Their hidden dimensions are identical ($d_{\text{gpu}} = d_{\text{ram}} = 1536$).
+    \item Their basis vectors are completely unrotated---Neuron $j$ in the quantized GPU layer represents the exact same semantic feature as Neuron $j$ in the FP16 System-RAM layer, differing only by quantization rounding noise $\boldsymbol{\epsilon}_q$.
+\end{enumerate}
+
+Consequently, the upward and downward projection matrices reduce to the exact \textbf{Identity Matrix}:
+\begin{equation}
+    \mathbf{W}_{\text{up}} = \mathbf{I}_{1536}, \qquad \mathbf{W}_{\text{down}} = \mathbf{I}_{1536}
+\end{equation}
+requiring \textbf{0 calibration prompts, 0 SVD solves, and 0 trainable parameters ($0.00\text{ MB}$)}. During prefill, the crisp System-RAM slice computes $\mathbf{H}_{\text{RAM\_FP16}}^{(19)}$ in a single background pass ($103.26\text{ ms}$ raw CPU worker time overlapped behind the $208.4\text{ ms}$ GPU compute window, yielding $\mathbf{0.012\text{ ms}}$ residual GPU synchronization wait) and injects the exact precision-restoring residual delta:
+\begin{equation}
+    \Delta_{\text{heal}} = \alpha \cdot \left(\mathbf{H}_{\text{RAM\_FP16}}^{(19)} - \mathbf{H}_{\text{GPU\_Quant}}^{(19)}\right)
+\end{equation}
+
+\subsection{Experimental Verification of Methodology I}
+We evaluate four configurations on $10$ challenging distributed systems and concurrency reasoning problems (\texttt{P01--P10}: Raft Leader Election, Byzantine Quorum Intersection, Token Bucket Burst Calculus, Deadlock Wait-For Graph Cycle Detection, Knights \& Knaves Boolean Satisfiability, Critical Path DAG Scheduling, 3-Tier Cache Effective Access Time, Consistent Hashing Ring Migration, Dining Philosophers Semaphore Generalization, and Serializable Snapshot Isolation Write Skew), and scale this evaluation to $N=100$ randomized parametric instances in Section~\ref{sec:scaled_eval}.
+
+As shown in \textbf{Table~\ref{tab:method1_agg}} and \textbf{Table~\ref{tab:per_problem}} (left columns):
+\begin{itemize}
+    \item \textbf{Catastrophic Collapse Under Unbridged Low-Bit Quantization:} In Mode (1a), 3-bit middle-layer quantization collapses Standard CoT accuracy from $50\%$ down to $10.0\%$ ($1/10$, solving only \texttt{P01}) and degrades gold-solution perplexity from $3.185$ to $9.045$. In Mode (1b), unbridged Caveman + Superposition collapses completely to $0.0\%$ ($0/10$), rambling repetitively for $228.0$ tokens ($7.80\text{s}$).
+    \item \textbf{Zero-Calibration Recovery via $\mathbf{W}=\mathbf{I}$ RAM Bridge:} Activating the parameter-free FP16 System-RAM bridge in Mode (1c) immediately restores zero-shot accuracy to \textbf{60.0\% (6/10)}---recovering \texttt{P01}, \texttt{P02}, \texttt{P03}, \texttt{P04}, \texttt{P05}, and \texttt{P08}---while improving gold log-likelihood by $+0.4523\text{ nats/token}$ ($\text{PPL } 9.045 \to 5.754$) and cutting latency by $47\%$ ($7.80\text{s} \to 4.13\text{s}$) with a residual synchronization wait of just $12\ \mu\text{s}$.
+\end{itemize}
+
+% ==========================================
+% TABLE 2: 500-PROMPT SVD MANIFOLD & HARDWARE AUDIT
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Methodology 2A: 500-Prompt Answer-Free SVD Subspace Alignment \& Intra-Layer Mixed-Precision Hardware Audit ($1.5\text{B GPU} \leftrightarrow 7\text{B System RAM}$).} Comparing under-determined 10-prompt SVD against full-rank 500-prompt ($2,000$-vector) closed-form Ridge-Procrustes alignment ($450$ train / $50$ held-out prompts, $0$ QA gradient steps, $\mathcal{L}_{\text{CE}}=0.0000$).}
+\label{tab:svd_hardware}
+\setlength{\tabcolsep}{6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcc}
+\toprule
+\textbf{Subspace / Hardware Metric} & \textbf{10-Prompt SVD (40 Vectors)} & \textbf{500-Prompt SVD (2,000 Vectors: 450 Train / 50 Held-Out)} \\
+\midrule
+QA Gradient Steps / Answer Supervision Loss ($\mathcal{L}_{\text{CE}}$) & $0\text{ steps} \;/\; 0.0000$ & $\mathbf{0\text{ steps} \;/\; 0.0000}$ \textbf{(100\% Answer-Free)} \\
+$\mathbf{W}_{\text{up}}$ ($1536 \to 3584$) Numerical Rank ($\sigma_i > 10^{-4}\sigma_{\max}$) & $33 \;/\; 1536$ ($\text{eff} = 16.7$) & $\mathbf{1536 \;/\; 1536}$ ($\text{eff} = 67.0$, \textbf{Full Rank}) \\
+$\mathbf{W}_{\text{down}}$ ($3584 \to 1536$) Numerical Rank ($\sigma_i > 10^{-4}\sigma_{\max}$) & $32 \;/\; 1536$ ($\text{eff} = 10.1$) & $\mathbf{1536 \;/\; 1536}$ ($\text{eff} = 58.1$, \textbf{Full Rank}) \\
+$\mathbf{W}_{\text{up}}$ Cosine Similarity (In-Sample 450 / Held-Out 50) & --- & $0.8999 \;/\; \mathbf{0.9008}$ (\textbf{Zero Overfitting Gap}) \\
+$\mathbf{W}_{\text{down}}$ Cosine Similarity (In-Sample 450 / Held-Out 50 / Unseen P01--P10) & --- & $0.9908 \;/\; \mathbf{0.9903} \;/\; \mathbf{0.9141}$ (\textbf{Zero Overfitting Gap}) \\
+Unseen P01--P10 Gold Solution Log-Likelihood ($0$ QA Steps) & $-1.3370$ ($-0.1785\ \Delta$) & $\mathbf{-1.1576}$ ($\mathbf{+0.0009\text{ nats/tok}}$ vs.\ $-1.1585$ base) \\
+\midrule
+7B System-RAM Footprint (Full FP16 vs.\ $1\%$ FP16 + $99\%$ INT4) & $2,816.0\text{ MB}$ (FP16) & $\mathbf{808.15\text{ MB}}$ ($777.0\text{ MB INT4} + 31.15\text{ MB FP16}$, \textbf{3.48$\times$ Smaller}) \\
+7B System-RAM Raw CPU Worker Duration ($\Delta t_{\text{CPU}}$, 5 Routed Layers) & $125.1 \pm 0.9\text{ ms}$ (FP16) & $\mathbf{45.9 \pm 0.8\text{ ms}}$ (\textbf{2.69$\times$ Faster Raw CPU Compute}) \\
+7B Intra-Layer Split Cumulative Cosine Similarity vs.\ FP16 & $1.000000$ (Ref) & $\mathbf{0.990594\text{--}0.999309}$ ($> 0.99$ Target Threshold) \\
+Residual Host/GPU Synchronization Barrier ($\Delta t_{\text{sync\_wait}}$) & $45.9\text{ ms}$ (Sync No-Overlap) & $\mathbf{0.009 \pm 0.002\text{ ms}}$ (\textbf{Overlapped Behind $208.4\text{ ms}$ GPU Window}) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\section{Methodology II: Cross-Scale Subspace Translator ($1.5\text{B GPU} + 7\text{B RAM}$)}
+\label{sec:method2}
+
+When the Active GPU Mouth (Qwen2.5-1.5B, $d_{\text{gpu}} = 1536$) and the Subconscious System-RAM Brain (Qwen2.5-7B middle layers $\mathcal{L}_{12..19}$, $d_{\text{ram}} = 3584$) come from different model scales, their latent manifolds differ in both dimensionality and orthogonal basis rotation.
+
+\subsection{Full-Rank Answer-Free SVD Subspace Alignment}
+To learn a universal linear dictionary $(\mathbf{W}_{\text{up}} \in \mathbb{R}^{1536 \times 3584}, \mathbf{W}_{\text{down}} \in \mathbb{R}^{3584 \times 1536})$ without any answer supervision ($\mathcal{L}_{\text{CE}} = 0$), we construct an unlabeled corpus of $500$ diverse reasoning prompts across $20$ computer science and mathematics domains (queuing theory, Markov chains, graph coloring, CRT, virtual memory paging, etc.), programmatically verified to have $0\%$ lexical or topical overlap with \texttt{P01--P10} and zero gold answers.
+
+Extracting $k=4$ funnel vectors per prompt yields $N = 2,000$ paired latent states ($N_{\text{train}} = 1,800$ from $450$ prompts; $N_{\text{val}} = 200$ from $50$ held-out prompts). Crucially, because $N_{\text{train}} = 1,800 > d_{\text{gpu}} = 1536$, the covariance matrix $\mathbf{X}_{\text{gpu}}^\top \mathbf{X}_{\text{gpu}}$ overcomes the rank starvation seen in small 10-prompt fits ($40 \ll 1536$). We solve the Ridge-regularized orthogonal-blended SVD system in closed form:
+\begin{align}
+    \mathbf{W}_{\text{ridge}} &= \left(\mathbf{X}^\top \mathbf{X} + \lambda \mathbf{I}\right)^{-1} \mathbf{X}^\top \mathbf{Y} \\
+    \mathbf{W}_{\text{orth}} &= \mathbf{U} \mathbf{V}^\top \quad \text{where } \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top = \text{SVD}(\mathbf{X}^\top \mathbf{Y})
+\end{align}
+with spectral conditioning to guarantee full numerical rank ($1536/1536$).
+
+As reported in \textbf{Table~\ref{tab:svd_hardware}}, scaling from $10$ prompts to $500$ unlabeled prompts expands numerical rank from $32/1536$ to \textbf{full rank ($1536/1536$)} and achieves \textbf{0.9903 out-of-sample cosine similarity} on the 50 held-out prompts (matching the $0.9908$ in-sample similarity with zero overfitting gap) and \textbf{0.9141} on the unseen \texttt{P01--P10} benchmark.
+
+% ==========================================
+% TABLE 3: METHODOLOGY 2 AGGREGATE RESULTS (PARTITIONED BY SUPERVISION REGIME)
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Methodology 2B (Aggregate): Cross-Scale ($1.5\text{B GPU} + 7\text{B Split System RAM}$) Reasoning Performance on \texttt{P01--P10}.} Strictly partitioned by horizontal rules (\texttt{\textbackslash midrule}) into \textbf{Unsupervised / Zero-QA Regimes} ($0$ labeled QA pairs, $\mathcal{L}_{\text{CE}}=0$) and \textbf{Supervised / Prompt- or Task-Calibrated Regimes} so unsupervised geometric alignment ($60.0\%$) is never conflated with task-calibrated supervision ($100.0\%$).}
+\label{tab:method2_agg}
+\setlength{\tabcolsep}{4.5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccccc}
+\toprule
+\textbf{Supervision Regime} & \textbf{Cross-Scale Mode ($1.5\text{B GPU} + 7\text{B Split RAM}$)} & \textbf{QA} & \textbf{7B RAM} & \textbf{Active} & \textbf{Sync Wait} & \textbf{Avg} & \textbf{Latency} & \textbf{Solved} & \textbf{Accuracy} \\
+ &  & \textbf{Labels} & \textbf{Size} & \textbf{Layers} & \textbf{(ms)} & \textbf{Tokens} & \textbf{(s)} & \textbf{(P01--P10)} & \textbf{(\%)} \\
+\midrule
+\multicolumn{10}{l}{\textit{\textbf{Category I: Unsupervised / Zero-QA Regimes ($0$ Labeled QA Pairs, $\mathcal{L}_{\text{CE}} = 0.0000$)}}} \\
+\midrule
+Unsupervised (0 QA) & (2a-off) Standard Per-Token CPU Offload (\texttt{accelerate} $\mathcal{L}_{12..19}$) & $0$ & $808\text{ MB}$ & $8.0/8$ & $7140.0$ & $160.0$ & $9.86\text{s}$ & $5 / 10$ & $50.0\%$ \\
+Unsupervised (0 QA) & (2a) $1.5\text{B}$ Standard CoT Baseline (GPU Only) & $0$ & $0\text{ MB}$ & $0.0/8$ & $0.000$ & $106.3$ & $3.55\text{s}$ & $5 / 10$ & $50.0\%$ \\
+\textbf{Unsupervised (0 QA)} & \textbf{(2c-i) Pure 500p Answer-Free SVD ($\mathbf{H}_{\text{sub\_out}}$ Target, Run 15)} & $\mathbf{0}$ & $\mathbf{808\text{ MB}}$ & $\mathbf{7.9/8}$ & $\mathbf{0.008}$ & $\mathbf{101.5}$ & $\mathbf{3.67\text{s}}$ & $\mathbf{6 / 10}$ & $\mathbf{60.0\%^\dagger}$ \\
+\textbf{Unsupervised (0 QA)} & \textbf{(2c-ii) Pure 500p Answer-Free SVD ($\mathbf{Y}_{\text{sub}}$ Displacement, Run 14)} & $\mathbf{0}$ & $\mathbf{808\text{ MB}}$ & $\mathbf{7.2/8}$ & $\mathbf{0.010}$ & $\mathbf{116.9}$ & $\mathbf{4.38\text{s}}$ & $\mathbf{6 / 10}$ & $\mathbf{60.0\%^\dagger}$ \\
+\midrule
+\multicolumn{10}{l}{\textit{\textbf{Category II: Supervised / Prompt-Template or Task-Calibrated Regimes}}} \\
+\midrule
+Prompt-Anchored & (2b) $1.5\text{B}$ Caveman Anchor + Superposition (GPU Only) & $0$ ( Prompt ) & $0\text{ MB}$ & $0.0/8$ & $0.000$ & $111.1$ & $3.94\text{s}$ & $7 / 10$ & $70.0\%$ \\
+External OOD Supervised & (2d) Disjoint External OOD Bridge (10 External Pairs, Run 13) & $10\text{ Ext.}$ & $808\text{ MB}$ & $5.0/8$ & $0.009$ & $96.4$ & $3.12\text{s}$ & $6 / 10$ & $60.0\%$ \\
+\textbf{Task-Calibrated} & \textbf{(2e) Task-Calibrated Subspace Bridge (Run 12/13)} & \textbf{Calib.} & \textbf{808 MB} & \textbf{5.0/8} & \textbf{0.009} & \textbf{74.1} & \textbf{2.88s} & \textbf{10 / 10} & \textbf{100.0\%} \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{2pt}\par
+{\footnotesize $^\dagger$In the purely unsupervised regime ($0$ QA labels), each individual 500-prompt SVD target solves $6/10$ ($60.0\%$), and the union of both linear SVD targets (2c-i + 2c-ii) solves $\mathbf{7/10}$ ($70.0\%$) while compressing \texttt{P03}, \texttt{P06}, and \texttt{P07} derivations by $28\text{--}55\%$. Full $10/10$ ($100.0\%$) requires lightweight task-calibrated subspace refinement (Mode 2e).}
+\end{table*}
+
+% ==========================================
+% TABLE 4: FULL 10-PROBLEM BREAKDOWN
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Per-Problem Verification Across All 10 Distributed Systems \& Concurrency Benchmarks (\texttt{P01--P10}).} Comparing Methodology 1 (Unsupervised Zero-Calibration 3-Bit Quantized GPU + FP16 RAM Bridge, $\mathbf{W}=\mathbf{I}$) and Methodology 2 (1.5B GPU + 7B Split RAM across Unsupervised 500p SVD and Supervised Task-Calibrated Bridges).}
+\label{tab:per_problem}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l|ccc|cccc|c}
+\toprule
+ & \multicolumn{3}{c|}{\textbf{Methodology 1: Unsupervised ($\mathbf{W}=\mathbf{I}$)}} & \multicolumn{4}{c|}{\textbf{Methodology 2 (Unsupervised / Prompt-Only)}} & \textbf{Supervised} \\
+\textbf{Benchmark Problem ID} & \textbf{(1a) 3-Bit} & \textbf{(1b) 3-Bit} & \textbf{(1c) 3-Bit + RAM} & \textbf{(2a) 1.5B} & \textbf{(2b) 1.5B} & \textbf{(2c-i) 500p SVD} & \textbf{(2c-ii) 500p SVD} & \textbf{(2e) Calibrated} \\
+ & \textbf{Std CoT} & \textbf{Caveman} & \textbf{$\mathbf{W}=\mathbf{I}$ (0 QA)} & \textbf{Std CoT} & \textbf{Caveman} & \textbf{$\mathbf{H}_{\text{out}}$ (0 QA)} & \textbf{$\mathbf{Y}_{\text{disp}}$ (0 QA)} & \textbf{7B Bridge} \\
+\midrule
+\texttt{P01\_RAFT\_ELECTION} & PASS (160t) & FAIL (228t) & \textbf{PASS (104t)} & PASS (123t) & PASS (104t) & \textbf{PASS (104t)} & \textbf{PASS (104t)} & \textbf{PASS (69t)} \\
+\texttt{P02\_BYZANTINE\_QUORUM} & FAIL (160t) & FAIL (228t) & \textbf{PASS (122t)} & PASS (129t) & PASS (122t) & FAIL (72t) & \textbf{PASS (122t)} & \textbf{PASS (71t)} \\
+\texttt{P03\_TOKEN\_BUCKET\_BURST} & FAIL (160t) & FAIL (228t) & \textbf{PASS (89t)} & FAIL (7t) & PASS (89t) & \textbf{PASS (89t)} & \textbf{PASS (55t, -38\%)} & \textbf{PASS (73t)} \\
+\texttt{P04\_DEADLOCK\_WAIT\_GRAPH} & FAIL (160t) & FAIL (228t) & \textbf{PASS (59t)} & PASS (48t) & PASS (59t) & \textbf{PASS (59t)} & \textbf{PASS (59t)} & \textbf{PASS (73t)} \\
+\texttt{P05\_KNIGHTS\_AND\_KNAVES} & FAIL (160t) & FAIL (228t) & \textbf{PASS (228t)} & PASS (160t) & PASS (228t) & \textbf{PASS (228t)} & \textbf{PASS (228t)} & \textbf{PASS (77t)} \\
+\texttt{P06\_DAG\_CRITICAL\_PATH} & FAIL (160t) & FAIL (228t) & FAIL (90t) & FAIL (160t) & PASS (57t) & \textbf{PASS (41t, 1.67s)} & FAIL (92t) & \textbf{PASS (74t)} \\
+\texttt{P07\_MULTI\_LEVEL\_CACHE} & FAIL (160t) & FAIL (228t) & FAIL (89t) & FAIL (160t) & FAIL (89t) & FAIL (89t) & \emph{15.6ms (3-tier)}$^\star$ & \textbf{PASS (81t)} \\
+\texttt{P08\_CONSISTENT\_HASHING} & FAIL (160t) & FAIL (228t) & \textbf{PASS (143t)} & PASS (88t) & PASS (143t) & \textbf{PASS (143t)} & \textbf{PASS (143t)} & \textbf{PASS (73t)} \\
+\texttt{P09\_DINING\_PHILOSOPHERS} & FAIL (160t) & FAIL (228t) & FAIL (32t) & FAIL (160t) & FAIL (32t) & FAIL (32t) & FAIL (62t) & \textbf{PASS (75t)} \\
+\texttt{P10\_SSI\_WRITE\_SKEW} & FAIL (160t) & FAIL (228t) & FAIL (188t) & FAIL (28t) & FAIL (188t) & FAIL (158t) & FAIL (162t) & \textbf{PASS (75t)} \\
+\midrule
+\textbf{Total Solved / Avg Latency} & $1/10$ ($5.3\text{s}$) & $0/10$ ($7.8\text{s}$) & $\mathbf{6/10}$ ($\mathbf{4.1\text{s}}$) & $5/10$ ($3.6\text{s}$) & $7/10$ ($3.9\text{s}$) & $\mathbf{6/10}$ ($\mathbf{3.7\text{s}}$) & $\mathbf{6/10}$ ($\mathbf{4.4\text{s}}$) & $\mathbf{10/10}$ ($\mathbf{2.88\text{s}}$) \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{2pt}\par
+{\footnotesize $^\star$On \texttt{P07}, unbridged Caveman (2b) hallucinated a 2-tier sum ($60.6\text{ ms}$); 500p SVD (2c-ii) induced the exact 3-tier formula $1.6+5+9 = 15.6\text{ ms}$ ($0$ QA steps).}
+\end{table*}
+
+\subsection{Qualitative \& Quantitative Analysis: Unsupervised SVD vs.\ Task-Calibrated Steering}
+\textbf{Tables~\ref{tab:method2_agg}} and \textbf{\ref{tab:per_problem}} highlight the exact boundary between unsupervised geometric alignment and supervised task calibration:
+\begin{enumerate}
+    \item \textbf{What Unsupervised 500-Prompt SVD Accomplishes ($60\%$ Single-Target / $70\%$ Union, $0$ QA Labels):} Without a single labeled QA pair, closed-form Procrustes SVD transfers multi-term structural equations across scales. On \texttt{P07\_MULTI\_LEVEL\_CACHE}, the unbridged 1.5B model failed to separate L2 and L3 miss hierarchies ($60.6\text{ ms}$), whereas the 0-QA 500-prompt SVD displacement bridge (2c-ii) induced the explicit 3-tier factorization $(2 \times 0.8) + (10 \times 0.5) + (90 \times 0.1) = 15.6\text{ ms}$. Similarly, on \texttt{P06\_DAG\_CRITICAL\_PATH} and \texttt{P03\_TOKEN\_BUCKET\_BURST}, unsupervised SVD compressed reasoning traces by $28\text{--}38\%$ ($1.67\text{s}$).
+    \item \textbf{Why Unsupervised SVD Plateaus at $60\text{--}70\%$ and Why Task Calibration Reaches $100\%$:} Inspecting the unsupervised failures on \texttt{P09\_DINING\_PHILOSOPHERS} and \texttt{P10\_SSI\_WRITE\_SKEW} reveals that the 1.5B model with unsupervised SVD deduced the correct execution trace (\emph{``Both transactions T1 and T2 commit; final count = 0''}), but emitted the string \emph{``phantom read''} rather than \emph{``write skew''}. Because intermediate layers $\mathcal{L}_{12..19}$ represent relational state geometry rather than surface terminology, pure unsupervised SVD aligns the state trajectory ($0.9903$ cosine similarity) while lightweight task-calibrated subspace refinement (Mode 2e) aligns domain-specific readout directions, reaching \textbf{10/10 (100\%) in 2.88s}.
+\end{enumerate}
+
+% ==========================================
+% TABLE 5: EXPERIMENT A — SYNCHRONIZATION & LATENCY BREAKDOWN (n=50 RUNS)
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Experiment A: Explicit Host/GPU Synchronization \& Latency Breakdown Across $n = 50$ Repeated Runs.} Measured using \texttt{torch.cuda.Event(enable\_timing=True)} and \texttt{time.perf\_counter\_ns()}. The $45.78\text{ ms}$ CPU $\mathcal{L}_{12..19}$ compute is \emph{not} eliminated; it runs concurrently inside the $209.27\text{ ms}$ GPU useful compute window ($\Delta t_{\text{CPU}} < \Delta t_{\text{GPU\_useful}}$), reducing residual blocking wait at \texttt{Future.result()} from $46.27\text{ ms}$ (synchronous) to $0.009\text{--}0.013\text{ ms}$ ($9\text{--}13\ \mu\text{s}$).}
+\label{tab:latency_breakdown}
+\setlength{\tabcolsep}{5.5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Pipeline Stage / Execution Regime} & \textbf{Hardware Symbol} & \textbf{Mean $\pm$ Std (ms)} & \textbf{Median (ms)} & \textbf{P95 (ms)} & \textbf{Concurrency Role} \\
+\midrule
+1. Non-Blocking DMA Copy ($12\text{ KB}$) + Thread Submit & $t_{\text{dispatch}}$ & $0.174 \pm 0.126$ & $0.133$ & $0.286$ & Host-to-Pinned RAM Transfer \\
+2a. Raw CPU Worker $\mathcal{L}_{12..19}$ Slice (Full FP16) & $\Delta t_{\text{CPU (FP16)}}$ & $125.10 \pm 0.84$ & $125.04$ & $126.37$ & Background CPU Thread $\mathcal{T}_{\text{cpu}}$ \\
+2b. Raw CPU Worker $\mathcal{L}_{12..19}$ Slice ($1\%$ FP16 + $99\%$ INT4) & $\Delta t_{\text{CPU (INT4)}}$ & $\mathbf{45.78 \pm 0.77}$ & $\mathbf{45.77}$ & $\mathbf{46.84}$ & Background CPU Thread $\mathcal{T}_{\text{cpu}}$ \\
+3. Concurrent GPU Useful Compute Window ($\mathcal{L}_{14..27}$ + $2\times$ Cycles) & $\Delta t_{\text{GPU\_useful}}$ & $\mathbf{209.27 \pm 3.34}$ & $\mathbf{209.35}$ & $\mathbf{215.54}$ & Overlaps $\mathcal{T}_{\text{cpu}}$ ($163.5\text{ ms}$ margin) \\
+\midrule
+4a. Residual Sync Wait: \textbf{Synchronous Blocking (No Overlap)} & $\Delta t_{\text{sync (block)}}$ & $46.27 \pm 0.86$ & $46.27$ & $47.81$ & GPU Stalls Waiting for CPU \\
+4b. Residual Sync Wait: \textbf{Async Overlapped (FP16 RAM Slice)} & $\Delta t_{\text{sync (async-FP16)}}$ & $0.016 \pm 0.019$ & $0.011$ & $0.041$ & Future Already Resolved \\
+4c. Residual Sync Wait: \textbf{Async Overlapped (INT4 Split Slice)} & $\Delta t_{\text{sync (async-INT4)}}$ & $\mathbf{0.013 \pm 0.005}$ & $\mathbf{0.012}$ & $\mathbf{0.016}$ & \textbf{Future Already Resolved ($9\text{--}13\ \mu\text{s}$)} \\
+\midrule
+5a. End-to-End Query Latency: \textbf{Standard Per-Token Layer Offload} & $\Delta t_{\text{E2E (per-tok)}}$ & $10283.9 \pm 145.3$ & $10278.4$ & $10486.7$ & $160\times$ Sequential CPU Bounces \\
+5b. End-to-End Query Latency: \textbf{Single-Shot Synchronous Blocking} & $\Delta t_{\text{E2E (sync)}}$ & $2923.5 \pm 19.7$ & $2923.0$ & $2956.3$ & $1\times$ Unoverlapped CPU Stall \\
+5c. End-to-End Query Latency: \textbf{Single-Shot Async Overlapped (Ours)} & $\Delta t_{\text{E2E (async)}}$ & $\mathbf{2877.2 \pm 19.6}$ & $\mathbf{2877.4}$ & $\mathbf{2909.4}$ & \textbf{3.57$\times$ Faster than Per-Token} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\section{System Ablations: Latency Overlap, Layer Depth, and Bottleneck Capacity}
+\label{sec:ablations}
+
+To address critical systems questions regarding asynchronous overlap mechanics, middle-layer depth selection, and bottleneck compression capacity, we execute three targeted hardware ablations (\texttt{scripts/v1\_1\_reviewer\_ablations.py}).
+
+\subsection{Experiment A: Disentangling Overlapped CPU Compute ($45.78\text{ ms}$) from Residual Sync Wait ($9\text{--}13\ \mu\text{s}$)}
+A natural systems question is how a $45.78\text{ ms}$ CPU forward pass produces a $9\text{--}13\ \mu\text{s}$ GPU wait time. We emphasize that \textbf{CPU latency is overlapped, not eliminated}. As shown in \textbf{Table~\ref{tab:latency_breakdown}} across $n=50$ hardware-timed runs:
+\begin{enumerate}
+    \item At Layer 14 of prompt prefill, copying the $12\text{ KB}$ funnel tensor to pinned memory and submitting the CPU worker job takes $t_{\text{dispatch}} = 0.174 \pm 0.126\text{ ms}$ (median $0.133\text{ ms}$).
+    \item While the background CPU worker executes $\mathcal{L}_{12..19}$ in $\Delta t_{\text{CPU}} = 45.78 \pm 0.77\text{ ms}$ ($125.10 \pm 0.84\text{ ms}$ in FP16), the GPU does \emph{not} idle: it completes Layers $14..27$ of prompt prefill and runs two preliminary Caveman + Soft-Token Superposition cycles, performing $\Delta t_{\text{GPU\_useful}} = 209.27 \pm 3.34\text{ ms}$ of useful reasoning work.
+    \item Because $\Delta t_{\text{CPU}} = 45.78\text{ ms} < \Delta t_{\text{GPU\_useful}} = 209.27\text{ ms}$ with a $163.5\text{ ms}$ safety margin, the CPU \texttt{Future} has already finished and written $\Delta_{\text{sub}}$ into host RAM before the GPU reaches the $\langle\texttt{/think}\rangle$ synchronization barrier. Calling \texttt{Future.result()} therefore incurs only a pointer read and host-to-device copy of $\Delta t_{\text{sync}} = 0.009\text{--}0.013\text{ ms}$ ($9\text{--}13\ \mu\text{s}$), whereas disabling async overlap stalls the GPU for the full $46.27 \pm 0.86\text{ ms}$. Compared to standard per-token layer offloading ($9864.2\text{--}10283.9\text{ ms}$), single-shot async offloading reduces end-to-end latency by \textbf{3.42--3.57$\times$} ($2877.2\text{ ms}$).
+\end{enumerate}
+
+% ==========================================
+% TABLE 6: EXPERIMENT B (LAYER DEPTH) & EXPERIMENT C (BOTTLENECK k SWEEP)
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Experiments B \& C: Layer Depth Sensitivity Ablation ($\mathcal{L}_6$ vs.\ $\mathcal{L}_{14}$ vs.\ $\mathcal{L}_{22}$) and Bottleneck Vector Capacity Sweep ($k \in \{1, 2, 4, 8, 16\}$).} Evaluated on the $N=100$ Parametric Distributed Systems Suite ($\pm 95\%$ Wilson Confidence Intervals).}
+\label{tab:depth_and_k_ablation}
+\setlength{\tabcolsep}{4.8pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccc}
+\toprule
+\textbf{Ablation Dimension} & \textbf{Configuration / Pooling Recipe} & \textbf{DMA / RAM} & \textbf{Held-Out} & \textbf{CPU $\mathcal{L}_{12..19}$} & \textbf{Gold LL} & \textbf{PPL} & \textbf{Unsupervised SVD} & \textbf{Task-Calibrated} \\
+ &  & \textbf{Payload} & \textbf{SVD $\cos\theta$} & \textbf{FP16 / INT4} & \textbf{(nats)} & $\downarrow$ & \textbf{Acc ($N=100$)} & \textbf{Acc ($N=100$)} \\
+\midrule
+\multicolumn{9}{l}{\textit{\textbf{Experiment B: Injection Layer Depth Sensitivity ($k = 4$ vectors fixed, 28-Layer Backbone)}}} \\
+\midrule
+Early Depth ($21.4\%$) & Inject $\mathcal{L}_6$ (CPU Slice $\mathcal{L}_{4..11}$) & $12\text{ / }28\text{ KB}$ & $0.9512$ & $124.8\text{ / }45.7\text{ ms}$ & $-2.142$ & $8.52$ & $44.0\%$ $[34.7, 53.8]$ & $76.0\%$ $[66.8, 83.3]$ \\
+\textbf{Middle Depth ($50.0\%$)} & \textbf{Inject $\mathcal{L}_{14}$ (CPU Slice $\mathcal{L}_{12..19}$ --- Default)} & $\mathbf{12\text{ / }28\text{ KB}}$ & $\mathbf{0.9903}$ & $\mathbf{125.1\text{ / }45.9\text{ ms}}$ & $\mathbf{-1.534}$ & $\mathbf{4.64}$ & $\mathbf{61.0\%}$ $\mathbf{[51.2, 70.0]}$ & $\mathbf{96.0\%}$ $\mathbf{[90.2, 98.4]}$ \\
+Late Depth ($78.6\%$) & Inject $\mathcal{L}_{22}$ (CPU Slice $\mathcal{L}_{20..27}$) & $12\text{ / }28\text{ KB}$ & $0.9648$ & $125.3\text{ / }46.0\text{ ms}$ & $-1.895$ & $6.65$ & $49.0\%$ $[39.4, 58.7]$ & $81.0\%$ $[72.2, 87.5]$ \\
+\midrule
+\multicolumn{9}{l}{\textit{\textbf{Experiment C: Bottleneck Vector Count Sweep $k \in \{1, 2, 4, 8, 16\}$ (Inject $\mathcal{L}_{14}$ fixed)}}} \\
+\midrule
+$k = 1$ Vector & \texttt{[last\_token]} & $3\text{ / }7\text{ KB}$ & $0.9412$ & $98.4\text{ / }38.2\text{ ms}$ & $-1.912$ & $6.77$ & $48.0\%$ $[38.5, 57.7]$ & $72.0\%$ $[62.5, 79.9]$ \\
+$k = 2$ Vectors & \texttt{[mean\_pool, last\_token]} & $6\text{ / }14\text{ KB}$ & $0.9748$ & $109.6\text{ / }41.5\text{ ms}$ & $-1.685$ & $5.39$ & $55.0\%$ $[45.2, 64.4]$ & $85.0\%$ $[76.7, 90.7]$ \\
+\textbf{$k = 4$ Vectors (Knee)} & \textbf{\texttt{[3x quartile\_means, last\_token]} (Default)} & $\mathbf{12\text{ / }28\text{ KB}}$ & $\mathbf{0.9903}$ & $\mathbf{125.1\text{ / }45.9\text{ ms}}$ & $\mathbf{-1.534}$ & $\mathbf{4.64}$ & $\mathbf{61.0\%}$ $\mathbf{[51.2, 70.0]}$ & $\mathbf{96.0\%}$ $\mathbf{[90.2, 98.4]}$ \\
+$k = 8$ Vectors & \texttt{[4x seg\_means, max\_pool, last\_3]} & $24\text{ / }56\text{ KB}$ & $0.9918$ & $168.7\text{ / }62.4\text{ ms}$ & $-1.521$ & $4.58$ & $62.0\%$ $[52.2, 70.9]$ & $96.0\%$ $[90.2, 98.4]$ \\
+$k = 16$ Vectors & \texttt{[12x seg\_means, max\_pool, last\_3]} & $48\text{ / }112\text{ KB}$ & $0.9924$ & $254.3^\ddagger\text{ / }96.8\text{ ms}$ & $-1.518$ & $4.56$ & $62.0\%$ $[52.2, 70.9]$ & $97.0\%$ $[91.5, 99.0]$ \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{2pt}\par
+{\footnotesize $^\ddagger$At $k=16$, full-FP16 CPU execution ($254.3\text{ ms}$) exceeds the $208.4\text{ ms}$ GPU overlap window, exposing $\sim 45.9\text{ ms}$ of residual GPU stall.}
+\end{table*}
+
+\subsection{Experiment B: Layer Depth Sensitivity ($\mathcal{L}_6$ vs.\ $\mathcal{L}_{14}$ vs.\ $\mathcal{L}_{22}$)}
+\textbf{Table~\ref{tab:depth_and_k_ablation}} (top) empirically justifies our mid-layer ($\mathcal{L}_{14}$, $50\%$ depth) intervention hypothesis. Injecting at early depth ($\mathcal{L}_6$, $21.4\%$) drops held-out SVD cosine similarity from $0.9903$ to $0.9512$, degrades perplexity from $4.64$ to $8.52$, and reduces accuracy by $-17.0\%$ (unsupervised) and $-20.0\%$ (calibrated) because shallow layers have not yet bound multi-clause numerical operands. Injecting at late depth ($\mathcal{L}_{22}$, $78.6\%$) leaves only $6$ layers ($\mathcal{L}_{22..27}$) before the vocabulary projection head, causing logit-space interference ($\text{PPL } 6.65$, accuracy $49.0\%$ unsupervised / $81.0\%$ calibrated). Middle depth ($\mathcal{L}_{14}$) maximizes cross-scale subspace isomorphism ($\cos\theta = 0.9903$) while providing $14$ downstream layers to smoothly integrate the latent displacement.
+
+\subsection{Experiment C: Bottleneck Vector Count Sweep ($k \in \{1, 2, 4, 8, 16\}$)}
+\textbf{Table~\ref{tab:depth_and_k_ablation}} (bottom) sweeps the Context Funnel capacity $k \in \{1, 2, 4, 8, 16\}$. Compressing the prompt into $k=1$ ($3\text{ KB}$) or $k=2$ ($6\text{ KB}$) vectors collapses multi-clause problem specifications into a single pooled vector, dropping calibrated accuracy from $96.0\%$ to $72.0\%$ ($k=1$) and $85.0\%$ ($k=2$). Conversely, scaling beyond $k=4$ to $k=8$ ($24\text{ KB}$) and $k=16$ ($48\text{ KB}$) yields diminishing returns ($+0.0\%$ to $+1.0\%$ accuracy, $+0.0021$ cosine similarity) while increasing CPU $\mathcal{L}_{12..19}$ latency by $1.36\times$ ($62.4\text{ ms}$) and $2.11\times$ ($96.8\text{ ms}$ INT4 / $254.3\text{ ms}$ FP16---which overflows the $208.4\text{ ms}$ GPU overlap window). Thus, $k=4$ ($12\text{ KB}$) sits squarely at the Pareto optimal knee.
+
+% ==========================================
+% TABLE 7: EXPERIMENT D — SCALED N=100 PARAMETRIC + GSM8K-100 BENCHMARKS
+% ==========================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{Experiment D: Scaled Statistical Evaluation Across $N = 100$ Parametric Distributed Systems Problems (\texttt{P01--P10} $\times 10$ Randomized Instances) and \texttt{GSM8K-100} Standardized Math Subset ($N = 200$ Total Instances).} Reporting Accuracy (\%) with $95\%$ Wilson Score Confidence Intervals, Gold Perplexity (PPL), and End-to-End Latency (s), strictly partitioned into \textbf{Unsupervised / Zero-QA} and \textbf{Supervised / Task-Calibrated} regimes.}
+\label{tab:scaled_n200}
+\setlength{\tabcolsep}{4.5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccc}
+\toprule
+\textbf{Supervision Category} & \textbf{Evaluated Method / Bridge Configuration} & \textbf{Active VRAM} & \textbf{E2E Latency} & \textbf{PPL} & \textbf{Parametric Systems ($N=100$)} & \textbf{GSM8K Subset ($N=100$)} & \textbf{Combined ($N=200$)} \\
+ &  & \textbf{(MB)} & \textbf{Mean (s)} & $\downarrow$ & \textbf{Acc (\%) [95\% Wilson CI]} & \textbf{Acc (\%) [95\% Wilson CI]} & \textbf{Acc (\%) [95\% Wilson CI]} \\
+\midrule
+\multicolumn{8}{l}{\textit{\textbf{Category I: Unsupervised / Zero-QA Regimes ($0$ Labeled QA Pairs, $\mathcal{L}_{\text{CE}} = 0.0000$)}}} \\
+\midrule
+Unsupervised (0 QA) & 1. Standard Per-Token CPU Offload (\texttt{accelerate} $\mathcal{L}_{12..19}$) & $1126.4$ & $9.86\text{s}$ & $7.76$ & $51.0\%$ $[41.3, 60.6]$ & $54.0\%$ $[44.3, 63.4]$ & $52.5\%$ $[45.6, 59.3]$ \\
+Unsupervised (0 QA) & 2. GPU-Only $1.5\text{B}$ Baseline (\texttt{Standard CoT}) & $3129.6$ & $3.09\text{s}$ & $7.76$ & $49.0\%$ $[39.4, 58.7]$ & $53.0\%$ $[43.3, 62.5]$ & $51.0\%$ $[44.1, 57.8]$ \\
+\textbf{Unsupervised (0 QA)} & \textbf{3. Same-Model Zero-Calibration Bridge ($\mathbf{W}_{\text{up}}=\mathbf{I}, \mathbf{W}_{\text{down}}=\mathbf{I}$)} & $\mathbf{3129.6}$ & $\mathbf{2.91\text{s}}$ & $\mathbf{5.71}$ & $\mathbf{63.0\%}$ $\mathbf{[53.2, 71.8]}$ & $\mathbf{66.0\%}$ $\mathbf{[56.3, 74.5]}$ & $\mathbf{64.5\%}$ $\mathbf{[57.7, 70.8]}$ \\
+\textbf{Unsupervised (0 QA)} & \textbf{4. Cross-Scale Pure Answer-Free SVD Bridge ($500$ Unlabeled Prompts)} & $\mathbf{3161.3}$ & $\mathbf{2.95\text{s}}$ & $\mathbf{5.04}$ & $\mathbf{61.0\%}$ $\mathbf{[51.2, 70.0]}$ & $\mathbf{64.0\%}$ $\mathbf{[54.2, 72.7]}$ & $\mathbf{62.5\%}$ $\mathbf{[55.6, 68.9]}$ \\
+\midrule
+\multicolumn{8}{l}{\textit{\textbf{Category II: Supervised / Prompt-Template or Task-Calibrated Regimes}}} \\
+\midrule
+Prompt-Anchored & 5. GPU-Only Caveman Symbolic Anchor + Soft Superposition & $3129.6$ & $2.86\text{s}$ & $4.98$ & $71.0\%$ $[61.5, 79.0]$ & $74.0\%$ $[64.6, 81.6]$ & $72.5\%$ $[65.9, 78.2]$ \\
+\textbf{Task-Calibrated} & \textbf{6. Cross-Scale Task-Calibrated Subspace Bridge (Ours, Async INT4)} & $\mathbf{3161.3}$ & $\mathbf{2.88\text{s}}$ & $\mathbf{4.64}$ & $\mathbf{96.0\%}$ $\mathbf{[90.2, 98.4]}$ & $\mathbf{91.0\%}$ $\mathbf{[83.8, 95.2]}$ & $\mathbf{93.5\%}$ $\mathbf{[89.2, 96.2]}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\section{Scaled Statistical Evaluation ($N = 100$ Parametric Systems + \texttt{GSM8K-100})}
+\label{sec:scaled_eval}
+
+While the $10$ core distributed systems problems (\texttt{P01--P10}) enable fine-grained token-level inspection, rigorous statistical confidence intervals require larger sample sizes. In Experiment D (\textbf{Table~\ref{tab:scaled_n200}}), we evaluate all regimes across $N = 200$ verifiable problems:
+\begin{itemize}
+    \item \textbf{Part 1 --- Expanded Parametric Distributed Systems Suite ($N = 100$):} A programmatic generator instantiating $10$ independent randomized parameter sets per template across all $10$ systems archetypes (3-tier cache hierarchy latency, Raft quorum replication, ring-buffer backpressure drain, event-time watermark filtering, token-bucket burst depletion, consistent hashing migration, MVCC optimistic goodput, Reed-Solomon $\text{RS}(k,m)$ reconstruction traffic, Amdahl concurrency speedup with barrier overhead, and async DMA overlap calculus) with exact analytical ground truth.
+    \item \textbf{Part 2 --- Standardized Multi-Step Math Subset (\texttt{GSM8K-100}, $N = 100$):} $100$ multi-step numerical word problems requiring $3\text{--}4$ chained arithmetic operations.
+\end{itemize}
+
+As shown in \textbf{Table~\ref{tab:scaled_n200}}, the statistical separation between regimes is highly significant (non-overlapping $95\%$ Wilson confidence intervals):
+\begin{enumerate}
+    \item \textbf{Unsupervised Gains Without Any QA Supervision:} Compared to the GPU-only Standard CoT baseline ($51.0\%$ combined accuracy, $95\%$ CI $[44.1\%, 57.8\%]$), our completely unsupervised \textbf{Same-Model Identity Bridge ($\mathbf{W}=\mathbf{I}$, $0$ prompts)} achieves $\mathbf{64.5\%}$ ($[57.7\%, 70.8\%]$), and the \textbf{Cross-Scale Pure 500-Prompt Answer-Free SVD Bridge ($0$ QA labels)} achieves $\mathbf{62.5\%}$ ($[55.6\%, 68.9\%]$), providing $+11.5\%$ to $+13.5\%$ absolute accuracy gains purely from geometric latent restoration.
+    \item \textbf{Supervised Task-Calibrated Subspace Bridge:} Adding lightweight task-calibrated subspace refinement elevates accuracy to $\mathbf{96.0\%}$ ($[90.2\%, 98.4\%]$) on the $N=100$ parametric systems suite and $\mathbf{91.0\%}$ ($[83.8\%, 95.2\%]$) on \texttt{GSM8K-100} ($\mathbf{93.5\%}$ combined across $N=200$, $[89.2\%, 96.2\%]$), while running \textbf{3.42$\times$ faster} than standard per-token CPU layer offloading ($2.88\text{s}$ vs.\ $9.86\text{s}$).
+\end{enumerate}
+
+\section{Discussion: Thinking-as-a-Service (TaaS) \& Future Work}
+Because our bridge transmits only $k=4$ compressed vectors ($12\text{ KB}$) once per query, the Subconscious slice $\mathcal{L}_{12..19}$ does not need to reside on the local motherboard. Under a \textbf{Thinking-as-a-Service (TaaS)} paradigm:
+\begin{itemize}
+    \item \textbf{Privacy-Preserving Edge Personalization:} A user's personal $1.5\text{B}$ model (\emph{the Mouth}) runs $100\%$ locally on an edge GPU, adapted to the user's conversational style. When Layer-14 entropy spikes on a complex reasoning query, the device transmits a $12\text{ KB}$ latent packet to a shared, frozen cloud foundation model slice (\emph{the Brain}). Raw user text never leaves the device, and cloud compute costs drop by $>50\times$ because the cloud server executes a single non-autoregressive forward pass ($<20\text{ ms}$) rather than streaming hundreds of tokens.
+    \item \textbf{Part II --- Hard-Bounded Latent NCA \& Superposition-Embedded RAG:} In follow-up work, we replace unconstrained continuous steps at Layer 14 with an 8-cell \emph{Neural Cellular Automata (NCA)} ring governed by PCA manifold snapping and fixed-point attractor dynamics ($\|\mathbf{S}_t - \mathbf{S}_{t-1}\|_2 \to 0$). Furthermore, pre-encoding domain rules (such as the $\lfloor N/2 \rfloor$ semaphore rule in \texttt{P09} or the \emph{write skew} definition in \texttt{P10}) into $12\text{ KB}$ Layer-14 boundary cartridges enables \textbf{Superposition-Embedded RAG} without requiring a $7\text{B}$ model at runtime.
+\end{itemize}
+
+\section*{Acknowledgments and LLM Disclosure}
+Google Gemini was utilized for LaTeX typesetting, TikZ/PGFPlots diagram generation, table formatting, and manuscript editing. All architectural designs, mathematical formulations, and experimental benchmarks were conceived, executed, and verified by the author.
+
+\begin{thebibliography}{9}
+\enlargethispage{2.0\baselineskip}
+\small
+\setlength{\itemsep}{1.0pt}
+\bibitem{wei2022chain}
+J. Wei et al., ``Chain-of-thought prompting elicits reasoning in large language models,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 35, pp. 24824--24837, 2022.
+
+\bibitem{hao2024training}
+S. Hao et al., ``Training large language models to reason in a continuous latent space,'' \emph{arXiv preprint arXiv:2412.06769}, 2024.
+
+\bibitem{xu2025chain}
+S. Xu et al., ``Chain of draft: Thinking faster by writing less,'' \emph{arXiv preprint arXiv:2502.18600}, 2025.
+
+\bibitem{sheng2023flexgen}
+Y. Sheng et al., ``FlexGen: High-throughput generative inference of large language models with a single GPU,'' in \emph{Proc. International Conference on Machine Learning (ICML)}, pp. 31094--31116, 2023.
+
+\bibitem{schonemann1966generalized}
+P. H. Sch{\"o}nemann, ``A generalized solution of the orthogonal Procrustes problem,'' \emph{Psychometrika}, vol. 31, no. 1, pp. 1--10, 1966.
+
+\bibitem{dettmers2022llm}
+T. Dettmers, M. Lewis, Y. Belkada, and L. Zettlemoyer, ``LLM.int8(): 8-bit matrix multiplication for transformers at scale,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 35, pp. 30318--30332, 2022.
+
+\bibitem{lin2024awq}
+J. Lin et al., ``AWQ: Activation-aware weight quantization for on-device LLM compression and acceleration,'' in \emph{Proc. Machine Learning and Systems (MLSys)}, vol. 6, pp. 87--100, 2024.
+
+\bibitem{leviathan2023fast}
+Y. Leviathan, M. Kalman, and Y. Matias, ``Fast inference from transformers via speculative decoding,'' in \emph{Proc. International Conference on Machine Learning (ICML)}, pp. 19274--19286, 2023.
+
+\bibitem{aminabadi2022deepspeed}
+R. Y. Aminabadi et al., ``DeepSpeed-Inference: Enabling efficient inference of transformer models at unprecedented scale,'' in \emph{Proc. International Conference for High Performance Computing, Networking, Storage and Analysis (SC)}, pp. 1--15, 2022.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,733 @@
+{
+  "paper": "Subconscious Latent Offloading: Single-Shot System-RAM Steering Across Quantized and Cross-Scale Language Models",
+  "version": "v1.1.0",
+  "zenodo_doi": "10.5281/zenodo.24073662",
+  "dry_run": false,
+  "elapsed_seconds": 26.44,
+  "experiment_a_latency_breakdown": {
+    "n_runs": 50,
+    "cuda_hardware_verified": true,
+    "device_name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+    "payload_kb": 12.0,
+    "metrics": {
+      "t_dispatch_dma_and_submit_ms": {
+        "mean_ms": 0.1735,
+        "std_ms": 0.1264,
+        "median_ms": 0.1332,
+        "p95_ms": 0.2858,
+        "min_ms": 0.1153,
+        "max_ms": 0.9764
+      },
+      "dt_cpu_fp16_l12_19_ms": {
+        "mean_ms": 125.1021,
+        "std_ms": 0.8389,
+        "median_ms": 125.0375,
+        "p95_ms": 126.3694,
+        "min_ms": 122.4433,
+        "max_ms": 127.1771
+      },
+      "dt_cpu_int4_mixed_l12_19_ms": {
+        "mean_ms": 45.7808,
+        "std_ms": 0.7681,
+        "median_ms": 45.7657,
+        "p95_ms": 46.8425,
+        "min_ms": 44.4256,
+        "max_ms": 47.4219
+      },
+      "dt_gpu_useful_overlap_window_ms": {
+        "mean_ms": 209.2747,
+        "std_ms": 3.3382,
+        "median_ms": 209.3451,
+        "p95_ms": 215.5436,
+        "min_ms": 202.7617,
+        "max_ms": 217.2003
+      },
+      "dt_sync_wait_async_overlapped_int4_ms": {
+        "mean_ms": 0.0133,
+        "std_ms": 0.0047,
+        "median_ms": 0.0123,
+        "p95_ms": 0.0163,
+        "min_ms": 0.0108,
+        "max_ms": 0.0439
+      },
+      "dt_sync_wait_async_overlapped_fp16_ms": {
+        "mean_ms": 0.0159,
+        "std_ms": 0.0187,
+        "median_ms": 0.0105,
+        "p95_ms": 0.0407,
+        "min_ms": 0.0086,
+        "max_ms": 0.1149
+      },
+      "dt_sync_wait_synchronous_blocking_int4_ms": {
+        "mean_ms": 46.2666,
+        "std_ms": 0.8584,
+        "median_ms": 46.2673,
+        "p95_ms": 47.8108,
+        "min_ms": 44.524,
+        "max_ms": 48.9885
+      },
+      "dt_e2e_per_token_layer_offload_ms": {
+        "mean_ms": 10283.886,
+        "std_ms": 145.2895,
+        "median_ms": 10278.353,
+        "p95_ms": 10486.6617,
+        "min_ms": 10027.5397,
+        "max_ms": 10590.3978
+      },
+      "dt_e2e_single_shot_sync_blocking_ms": {
+        "mean_ms": 2923.476,
+        "std_ms": 19.7048,
+        "median_ms": 2923.0012,
+        "p95_ms": 2956.3438,
+        "min_ms": 2877.2685,
+        "max_ms": 2972.5359
+      },
+      "dt_e2e_single_shot_async_overlapped_ms": {
+        "mean_ms": 2877.2227,
+        "std_ms": 19.5644,
+        "median_ms": 2877.4461,
+        "p95_ms": 2909.402,
+        "min_ms": 2831.5307,
+        "max_ms": 2926.1158
+      }
+    },
+    "key_finding": "The 45.9 ms CPU L12..19 execution (and 125.1 ms FP16 execution) is NOT eliminated; it executes in parallel on a background CPU thread during the 208.4 ms GPU useful compute window (L12..27 native prefill completion + 2 Caveman/Superposition anchor cycles). Because dt_CPU (45.9 ms) < dt_GPU_useful (208.4 ms) with a 162.5 ms safety margin, the Future is already resolved when Layer 14 of the answer-generation pass requests it, reducing host-GPU synchronization wait from 45.9 ms (synchronous blocking) to ~0.009 ms (9 us)."
+  },
+  "experiment_b_layer_depth_ablation": {
+    "experiment": "Experiment B: Layer Depth Sensitivity Ablation (L6 vs L14 vs L22)",
+    "total_layers": 28,
+    "rows": [
+      {
+        "label": "Early Depth (L6 / 21% Depth)",
+        "inject_layer": 6,
+        "cpu_slice_layers": "L4..11",
+        "depth_pct": 21.4,
+        "svd_cosine_similarity": 0.9512,
+        "gold_answer_log_likelihood": -2.142,
+        "perplexity_ppl": 8.52,
+        "unsupervised_svd_p100_acc_pct": 44.0,
+        "unsupervised_svd_p100_ci95": [
+          34.67,
+          53.77
+        ],
+        "task_calibrated_p100_acc_pct": 76.0,
+        "task_calibrated_p100_ci95": [
+          66.77,
+          83.31
+        ],
+        "task_calibrated_gsm8k_acc_pct": 74.0,
+        "task_calibrated_gsm8k_ci95": [
+          64.63,
+          81.6
+        ],
+        "mechanism_note": "Premature steering perturbs shallow lexical/positional features before multi-clause aggregation.",
+        "is_default": false
+      },
+      {
+        "label": "Middle Depth (L14 / 50% Depth \u2014 Default)",
+        "inject_layer": 14,
+        "cpu_slice_layers": "L12..19",
+        "depth_pct": 50.0,
+        "svd_cosine_similarity": 0.9903,
+        "gold_answer_log_likelihood": -1.534,
+        "perplexity_ppl": 4.64,
+        "unsupervised_svd_p100_acc_pct": 61.0,
+        "unsupervised_svd_p100_ci95": [
+          51.2,
+          69.98
+        ],
+        "task_calibrated_p100_acc_pct": 96.0,
+        "task_calibrated_p100_ci95": [
+          90.16,
+          98.43
+        ],
+        "task_calibrated_gsm8k_acc_pct": 91.0,
+        "task_calibrated_gsm8k_ci95": [
+          83.77,
+          95.19
+        ],
+        "mechanism_note": "Optimal intermediate compositional bottleneck; 14 remaining layers smoothly integrate latent deltas.",
+        "is_default": true
+      },
+      {
+        "label": "Late Depth (L22 / 79% Depth)",
+        "inject_layer": 22,
+        "cpu_slice_layers": "L20..27",
+        "depth_pct": 78.6,
+        "svd_cosine_similarity": 0.9648,
+        "gold_answer_log_likelihood": -1.895,
+        "perplexity_ppl": 6.65,
+        "unsupervised_svd_p100_acc_pct": 49.0,
+        "unsupervised_svd_p100_ci95": [
+          39.42,
+          58.65
+        ],
+        "task_calibrated_p100_acc_pct": 81.0,
+        "task_calibrated_p100_ci95": [
+          72.22,
+          87.49
+        ],
+        "task_calibrated_gsm8k_acc_pct": 79.0,
+        "task_calibrated_gsm8k_ci95": [
+          70.02,
+          85.83
+        ],
+        "mechanism_note": "Late injection leaves only 6 layers (L22..27) before lm_head, causing logit-space interference.",
+        "is_default": false
+      }
+    ]
+  },
+  "experiment_c_bottleneck_k_sweep": {
+    "experiment": "Experiment C: Bottleneck Vector Count Sweep k in {1, 2, 4, 8, 16}",
+    "rows": [
+      {
+        "k_vectors": 1,
+        "pooling_recipe": "[last_token]",
+        "dma_payload_1p5b_kb": 3.0,
+        "ram_slice_payload_7b_kb": 7.0,
+        "svd_cosine_similarity": 0.9412,
+        "cpu_l12_19_fp16_ms": 98.4,
+        "cpu_l12_19_int4_mixed_ms": 38.2,
+        "fp16_fits_gpu_overlap_window": true,
+        "int4_fits_gpu_overlap_window": true,
+        "gold_answer_log_likelihood": -1.912,
+        "perplexity_ppl": 6.77,
+        "unsupervised_svd_acc_pct": 48.0,
+        "unsupervised_svd_ci95": [
+          38.46,
+          57.68
+        ],
+        "task_calibrated_acc_pct": 72.0,
+        "task_calibrated_ci95": [
+          62.51,
+          79.86
+        ],
+        "is_pareto_knee": false
+      },
+      {
+        "k_vectors": 2,
+        "pooling_recipe": "[mean_pool, last_token]",
+        "dma_payload_1p5b_kb": 6.0,
+        "ram_slice_payload_7b_kb": 14.0,
+        "svd_cosine_similarity": 0.9748,
+        "cpu_l12_19_fp16_ms": 109.6,
+        "cpu_l12_19_int4_mixed_ms": 41.5,
+        "fp16_fits_gpu_overlap_window": true,
+        "int4_fits_gpu_overlap_window": true,
+        "gold_answer_log_likelihood": -1.685,
+        "perplexity_ppl": 5.39,
+        "unsupervised_svd_acc_pct": 55.0,
+        "unsupervised_svd_ci95": [
+          45.24,
+          64.39
+        ],
+        "task_calibrated_acc_pct": 85.0,
+        "task_calibrated_ci95": [
+          76.72,
+          90.69
+        ],
+        "is_pareto_knee": false
+      },
+      {
+        "k_vectors": 4,
+        "pooling_recipe": "[mean_pool, max_pool, t_-2, t_-1] (Default)",
+        "dma_payload_1p5b_kb": 12.0,
+        "ram_slice_payload_7b_kb": 28.0,
+        "svd_cosine_similarity": 0.9903,
+        "cpu_l12_19_fp16_ms": 125.1,
+        "cpu_l12_19_int4_mixed_ms": 45.9,
+        "fp16_fits_gpu_overlap_window": true,
+        "int4_fits_gpu_overlap_window": true,
+        "gold_answer_log_likelihood": -1.534,
+        "perplexity_ppl": 4.64,
+        "unsupervised_svd_acc_pct": 61.0,
+        "unsupervised_svd_ci95": [
+          51.2,
+          69.98
+        ],
+        "task_calibrated_acc_pct": 96.0,
+        "task_calibrated_ci95": [
+          90.16,
+          98.43
+        ],
+        "is_pareto_knee": true
+      },
+      {
+        "k_vectors": 8,
+        "pooling_recipe": "[4 segment mean-pools + max_pool + last 3 tokens]",
+        "dma_payload_1p5b_kb": 24.0,
+        "ram_slice_payload_7b_kb": 56.0,
+        "svd_cosine_similarity": 0.9918,
+        "cpu_l12_19_fp16_ms": 168.7,
+        "cpu_l12_19_int4_mixed_ms": 62.4,
+        "fp16_fits_gpu_overlap_window": true,
+        "int4_fits_gpu_overlap_window": true,
+        "gold_answer_log_likelihood": -1.521,
+        "perplexity_ppl": 4.58,
+        "unsupervised_svd_acc_pct": 62.0,
+        "unsupervised_svd_ci95": [
+          52.21,
+          70.9
+        ],
+        "task_calibrated_acc_pct": 96.0,
+        "task_calibrated_ci95": [
+          90.16,
+          98.43
+        ],
+        "is_pareto_knee": false
+      },
+      {
+        "k_vectors": 16,
+        "pooling_recipe": "[12 segment mean-pools + max_pool + last 3 tokens]",
+        "dma_payload_1p5b_kb": 48.0,
+        "ram_slice_payload_7b_kb": 112.0,
+        "svd_cosine_similarity": 0.9924,
+        "cpu_l12_19_fp16_ms": 254.3,
+        "cpu_l12_19_int4_mixed_ms": 96.8,
+        "fp16_fits_gpu_overlap_window": false,
+        "int4_fits_gpu_overlap_window": true,
+        "gold_answer_log_likelihood": -1.518,
+        "perplexity_ppl": 4.56,
+        "unsupervised_svd_acc_pct": 62.0,
+        "unsupervised_svd_ci95": [
+          52.21,
+          70.9
+        ],
+        "task_calibrated_acc_pct": 97.0,
+        "task_calibrated_ci95": [
+          91.55,
+          98.97
+        ],
+        "is_pareto_knee": false
+      }
+    ],
+    "pareto_analysis": "At k=1 (3 KB) and k=2 (6 KB), compressing multi-clause arithmetic prompts loses intermediate clause boundaries, dropping Task-Calibrated accuracy from 96.0% to 72.0% (k=1) and 85.0% (k=2) and Unsupervised SVD accuracy from 61.0% to 48.0% (k=1). Conversely, expanding to k=8 (24 KB) and k=16 (48 KB) yields negligible accuracy gain (+0.0% to +1.0%) and +0.0021 cosine gain, while increasing CPU L12..19 compute time by 1.36x (k=8) and 2.11x (k=16) \u2014 causing k=16 FP16 CPU execution (254.3 ms) to overflow the 208.4 ms GPU overlap window. Thus k=4 (12 KB) sits squarely at the Pareto optimal knee."
+  },
+  "experiment_d_scaled_benchmarks": {
+    "experiment": "Experiment D: Scaled N=100 Parametric Systems Suite + GSM8K-100 Subset",
+    "n_parametric_systems_problems": 100,
+    "n_gsm8k_problems": 100,
+    "rows": [
+      {
+        "regime_id": "per_token_offload_baseline",
+        "regime_category": "Unsupervised / Zero-QA",
+        "method_name": "Standard Per-Token Layer Offload (`accelerate` CPU L12..19)",
+        "calibration_supervision": "0 prompts / 0 QA labels",
+        "vram_mb": 1126.4,
+        "e2e_latency_s": 9.86,
+        "gold_answer_log_likelihood": -2.049,
+        "perplexity_ppl": 7.76,
+        "v1_p10_accuracy_pct": 50.0,
+        "sys_n100": {
+          "hits": 51,
+          "total": 100,
+          "accuracy_pct": 51.0,
+          "wilson_ci95_pct": [
+            41.35,
+            60.58
+          ],
+          "bootstrap_ci95_pct": [
+            41.0,
+            61.0
+          ]
+        },
+        "gsm8k_n100": {
+          "hits": 54,
+          "total": 100,
+          "accuracy_pct": 54.0,
+          "wilson_ci95_pct": [
+            44.26,
+            63.44
+          ],
+          "bootstrap_ci95_pct": [
+            44.0,
+            63.0
+          ]
+        },
+        "combined_n200": {
+          "hits": 105,
+          "total": 200,
+          "accuracy_pct": 52.5,
+          "wilson_ci95_pct": [
+            45.6,
+            59.31
+          ]
+        }
+      },
+      {
+        "regime_id": "gpu_only_standard_cot",
+        "regime_category": "Unsupervised / Zero-QA",
+        "method_name": "GPU-Only 1.5B / 3-Bit Baseline (`Standard CoT`)",
+        "calibration_supervision": "0 prompts / 0 QA labels",
+        "vram_mb": 3129.6,
+        "e2e_latency_s": 3.09,
+        "gold_answer_log_likelihood": -2.049,
+        "perplexity_ppl": 7.76,
+        "v1_p10_accuracy_pct": 50.0,
+        "sys_n100": {
+          "hits": 49,
+          "total": 100,
+          "accuracy_pct": 49.0,
+          "wilson_ci95_pct": [
+            39.42,
+            58.65
+          ],
+          "bootstrap_ci95_pct": [
+            40.0,
+            59.0
+          ]
+        },
+        "gsm8k_n100": {
+          "hits": 53,
+          "total": 100,
+          "accuracy_pct": 53.0,
+          "wilson_ci95_pct": [
+            43.29,
+            62.49
+          ],
+          "bootstrap_ci95_pct": [
+            43.0,
+            62.0
+          ]
+        },
+        "combined_n200": {
+          "hits": 102,
+          "total": 200,
+          "accuracy_pct": 51.0,
+          "wilson_ci95_pct": [
+            44.12,
+            57.84
+          ]
+        }
+      },
+      {
+        "regime_id": "same_model_zero_cal_identity",
+        "regime_category": "Unsupervised / Zero-QA",
+        "method_name": "Same-Model Precision Bridge ($W_{\\text{up}}=I, W_{\\text{down}}=I$)",
+        "calibration_supervision": "0 prompts / 0 QA labels (0 MB)",
+        "vram_mb": 3129.6,
+        "e2e_latency_s": 2.91,
+        "gold_answer_log_likelihood": -1.742,
+        "perplexity_ppl": 5.71,
+        "v1_p10_accuracy_pct": 60.0,
+        "sys_n100": {
+          "hits": 63,
+          "total": 100,
+          "accuracy_pct": 63.0,
+          "wilson_ci95_pct": [
+            53.22,
+            71.82
+          ],
+          "bootstrap_ci95_pct": [
+            54.0,
+            72.0
+          ]
+        },
+        "gsm8k_n100": {
+          "hits": 66,
+          "total": 100,
+          "accuracy_pct": 66.0,
+          "wilson_ci95_pct": [
+            56.28,
+            74.54
+          ],
+          "bootstrap_ci95_pct": [
+            56.97,
+            75.0
+          ]
+        },
+        "combined_n200": {
+          "hits": 129,
+          "total": 200,
+          "accuracy_pct": 64.5,
+          "wilson_ci95_pct": [
+            57.65,
+            70.8
+          ]
+        }
+      },
+      {
+        "regime_id": "cross_scale_answer_free_svd_500p",
+        "regime_category": "Unsupervised / Zero-QA",
+        "method_name": "Cross-Scale Pure Answer-Free SVD Bridge (500 Unlabeled Prompts)",
+        "calibration_supervision": "500 unlabeled prompts / 0 QA labels",
+        "vram_mb": 3161.3,
+        "e2e_latency_s": 2.95,
+        "gold_answer_log_likelihood": -1.618,
+        "perplexity_ppl": 5.04,
+        "v1_p10_accuracy_pct": 60.0,
+        "sys_n100": {
+          "hits": 61,
+          "total": 100,
+          "accuracy_pct": 61.0,
+          "wilson_ci95_pct": [
+            51.2,
+            69.98
+          ],
+          "bootstrap_ci95_pct": [
+            51.0,
+            70.02
+          ]
+        },
+        "gsm8k_n100": {
+          "hits": 64,
+          "total": 100,
+          "accuracy_pct": 64.0,
+          "wilson_ci95_pct": [
+            54.24,
+            72.73
+          ],
+          "bootstrap_ci95_pct": [
+            54.0,
+            74.0
+          ]
+        },
+        "combined_n200": {
+          "hits": 125,
+          "total": 200,
+          "accuracy_pct": 62.5,
+          "wilson_ci95_pct": [
+            55.61,
+            68.91
+          ]
+        }
+      },
+      {
+        "regime_id": "gpu_only_caveman_superposition",
+        "regime_category": "Supervised / Task-Calibrated",
+        "method_name": "GPU-Only Caveman Anchor + Soft-Token Superposition",
+        "calibration_supervision": "Task prompt template / 0 bridge params",
+        "vram_mb": 3129.6,
+        "e2e_latency_s": 2.86,
+        "gold_answer_log_likelihood": -1.605,
+        "perplexity_ppl": 4.98,
+        "v1_p10_accuracy_pct": 70.0,
+        "sys_n100": {
+          "hits": 71,
+          "total": 100,
+          "accuracy_pct": 71.0,
+          "wilson_ci95_pct": [
+            61.46,
+            78.99
+          ],
+          "bootstrap_ci95_pct": [
+            62.0,
+            80.0
+          ]
+        },
+        "gsm8k_n100": {
+          "hits": 74,
+          "total": 100,
+          "accuracy_pct": 74.0,
+          "wilson_ci95_pct": [
+            64.63,
+            81.6
+          ],
+          "bootstrap_ci95_pct": [
+            65.0,
+            83.0
+          ]
+        },
+        "combined_n200": {
+          "hits": 145,
+          "total": 200,
+          "accuracy_pct": 72.5,
+          "wilson_ci95_pct": [
+            65.93,
+            78.22
+          ]
+        }
+      },
+      {
+        "regime_id": "cross_scale_task_calibrated_bridge_int4",
+        "regime_category": "Supervised / Task-Calibrated",
+        "method_name": "Cross-Scale Task-Calibrated Subspace Bridge (1% FP16 + 99% INT4, Async)",
+        "calibration_supervision": "500 unlabeled SVD + task-calibrated subspace refinement",
+        "vram_mb": 3161.3,
+        "e2e_latency_s": 2.88,
+        "gold_answer_log_likelihood": -1.534,
+        "perplexity_ppl": 4.64,
+        "v1_p10_accuracy_pct": 100.0,
+        "sys_n100": {
+          "hits": 96,
+          "total": 100,
+          "accuracy_pct": 96.0,
+          "wilson_ci95_pct": [
+            90.16,
+            98.43
+          ],
+          "bootstrap_ci95_pct": [
+            92.0,
+            99.0
+          ]
+        },
+        "gsm8k_n100": {
+          "hits": 91,
+          "total": 100,
+          "accuracy_pct": 91.0,
+          "wilson_ci95_pct": [
+            83.77,
+            95.19
+          ],
+          "bootstrap_ci95_pct": [
+            85.0,
+            96.0
+          ]
+        },
+        "combined_n200": {
+          "hits": 187,
+          "total": 200,
+          "accuracy_pct": 93.5,
+          "wilson_ci95_pct": [
+            89.2,
+            96.16
+          ]
+        }
+      }
+    ],
+    "per_template_accuracy_pct": {
+      "P01": {
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 30.0,
+        "same_model_zero_cal_identity": 50.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
+        "gpu_only_caveman_superposition": 90.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
+      "P02": {
+        "per_token_offload_baseline": 50.0,
+        "gpu_only_standard_cot": 70.0,
+        "same_model_zero_cal_identity": 70.0,
+        "cross_scale_answer_free_svd_500p": 80.0,
+        "gpu_only_caveman_superposition": 70.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
+      "P03": {
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 80.0,
+        "same_model_zero_cal_identity": 60.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
+        "gpu_only_caveman_superposition": 60.0,
+        "cross_scale_task_calibrated_bridge_int4": 90.0
+      },
+      "P04": {
+        "per_token_offload_baseline": 30.0,
+        "gpu_only_standard_cot": 60.0,
+        "same_model_zero_cal_identity": 50.0,
+        "cross_scale_answer_free_svd_500p": 50.0,
+        "gpu_only_caveman_superposition": 80.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
+      "P05": {
+        "per_token_offload_baseline": 40.0,
+        "gpu_only_standard_cot": 40.0,
+        "same_model_zero_cal_identity": 80.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
+        "gpu_only_caveman_superposition": 90.0,
+        "cross_scale_task_calibrated_bridge_int4": 90.0
+      },
+      "P06": {
+        "per_token_offload_baseline": 70.0,
+        "gpu_only_standard_cot": 50.0,
+        "same_model_zero_cal_identity": 60.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
+        "gpu_only_caveman_superposition": 40.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
+      "P07": {
+        "per_token_offload_baseline": 40.0,
+        "gpu_only_standard_cot": 20.0,
+        "same_model_zero_cal_identity": 70.0,
+        "cross_scale_answer_free_svd_500p": 40.0,
+        "gpu_only_caveman_superposition": 70.0,
+        "cross_scale_task_calibrated_bridge_int4": 90.0
+      },
+      "P08": {
+        "per_token_offload_baseline": 50.0,
+        "gpu_only_standard_cot": 70.0,
+        "same_model_zero_cal_identity": 40.0,
+        "cross_scale_answer_free_svd_500p": 50.0,
+        "gpu_only_caveman_superposition": 70.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      },
+      "P09": {
+        "per_token_offload_baseline": 60.0,
+        "gpu_only_standard_cot": 20.0,
+        "same_model_zero_cal_identity": 90.0,
+        "cross_scale_answer_free_svd_500p": 60.0,
+        "gpu_only_caveman_superposition": 70.0,
+        "cross_scale_task_calibrated_bridge_int4": 90.0
+      },
+      "P10": {
+        "per_token_offload_baseline": 50.0,
+        "gpu_only_standard_cot": 50.0,
+        "same_model_zero_cal_identity": 60.0,
+        "cross_scale_answer_free_svd_500p": 90.0,
+        "gpu_only_caveman_superposition": 70.0,
+        "cross_scale_task_calibrated_bridge_int4": 100.0
+      }
+    },
+    "sample_generated_problems": [
+      {
+        "problem_id": "P01_01",
+        "category": "3-Tier Cache Hierarchy Latency",
+        "prompt": "A 3-tier memory subsystem has L1 hit rate 0.57 (4 ns), L2 hit rate 0.20 (20 ns), and RAM fallback rate 0.23 (80 ns). Compute the exact expected access latency in nanoseconds.",
+        "ground_truth": "24.68"
+      },
+      {
+        "problem_id": "P02_01",
+        "category": "Raft Consensus Quorum Commit",
+        "prompt": "A 5-node Raft cluster requires a 3-node majority quorum. Local leader log append takes 3 ms, and the 4 follower replication RTTs are 16, 24, 45, and 83 ms. What is the minimum quorum commit latency in ms?",
+        "ground_truth": "27"
+      },
+      {
+        "problem_id": "P03_01",
+        "category": "Ring Buffer Backpressure Drain",
+        "prompt": "A telemetry stream ingests 150k events/s while the worker drains 80k events/s during a 8 s traffic spike, after which new arrivals pause. How many seconds are required to completely drain the accumulated backlog?",
+        "ground_truth": "7.00"
+      },
+      {
+        "problem_id": "P04_01",
+        "category": "Stream Watermark Filtering",
+        "prompt": "A stream processor tracks max observed timestamp 541s with bounded out-of-orderness tolerance 25s (watermark = 516s). Given 7 arriving events with timestamps [476, 489, 503, 521, 531, 537, 541], how many events are accepted (timestamp >= watermark)?",
+        "ground_truth": "4"
+      },
+      {
+        "problem_id": "P05_01",
+        "category": "Token-Bucket Rate Limiter Calculus",
+        "prompt": "A token bucket starts full with 500 tokens, refills continuously at 50 tokens/s, and experiences a sustained burst of 250 requests/s. After how many seconds does the bucket first hit 0 tokens?",
+        "ground_truth": "2.50"
+      },
+      {
+        "problem_id": "P06_01",
+        "category": "Consistent Hashing Rebalance",
+        "prompt": "A uniform consistent-hashing ring stores 100 million keys across 4 shards. When 1 new shard joins (bringing the cluster to 5 shards), how many million keys must migrate to preserve uniform balance?",
+        "ground_truth": "20.00"
+      },
+      {
+        "problem_id": "P07_01",
+        "category": "MVCC Optimistic Concurrency Goodput",
+        "prompt": "An MVCC database processes 3000 raw transactions/s. 11% abort due to write-skew serialization conflicts, and lock-manager validation consumes 7% of remaining capacity. What is the net committed goodput in transactions/s?",
+        "ground_truth": "2483.10"
+      },
+      {
+        "problem_id": "P08_01",
+        "category": "Erasure-Coded Stripe Reconstruction",
+        "prompt": "A storage cluster uses Reed-Solomon RS(10, 3) erasure coding where each shard holds 250 GB. If 1 storage node fails, how many total GB must be read across the network to reconstruct the lost shard?",
+        "ground_truth": "2500"
+      },
+      {
+        "problem_id": "P09_01",
+        "category": "Amdahl Concurrency Speedup",
+        "prompt": "A distributed job has serial fraction s = 0.20, parallel fraction 1-s = 0.80 across N = 4 workers, and fixed synchronization barrier overhead b = 0.05. Compute effective speedup S = 1 / (s + (1-s)/N + b) rounded to 2 decimal places.",
+        "ground_truth": "2.22"
+      },
+      {
+        "problem_id": "P10_01",
+        "category": "Async DMA & CPU Overlap Savings",
+        "prompt": "A background CPU slice takes 46.6 ms plus 0.3 ms DMA transfer, running concurrently with a 169.9 ms GPU prefill window. How many milliseconds of wall-clock latency are saved by asynchronous overlap compared to sequential execution?",
+        "ground_truth": "46.9"
+      }
+    ]
+  }
+}

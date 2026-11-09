@@ -69,11 +69,69 @@ class ContextFunnelCompressor(nn.Module):
         nn.init.zeros_(self.out_proj.weight)
 
     @staticmethod
+    def pool_k_vectors(hidden_states: torch.Tensor, k: int = 4) -> torch.Tensor:
+        """
+        Sweepable bottleneck pooling across k in {1, 2, 4, 8, 16} vectors:
+          - k = 1 (3 KB): [last_token]
+          - k = 2 (6 KB): [mean_pool, last_token]
+          - k = 4 (12 KB, Default): [mean_pool, max_pool, t_-2, t_-1]
+          - k = 8 (24 KB): [4 uniform segment mean-pools + max_pool + last 3 tokens]
+          - k = 16 (48 KB): [12 uniform segment mean-pools + max_pool + last 3 tokens]
+        mytail: supports arbitrary k in {1,2,4,8,16} for Pareto knee verification.
+        """
+        bsz, seq_len, d = hidden_states.shape
+        h_fp32 = hidden_states.float()
+        if seq_len < k:
+            pad_n = k - seq_len
+            padded = torch.cat(
+                [h_fp32[:, :1, :].expand(bsz, pad_n, d), h_fp32],
+                dim=1,
+            )
+            return padded.to(dtype=hidden_states.dtype)
+
+        if k == 1:
+            out = h_fp32[:, -1:, :]
+        elif k == 2:
+            mean_p = h_fp32.mean(dim=1, keepdim=True)
+            last_t = h_fp32[:, -1:, :]
+            out = torch.cat([mean_p, last_t], dim=1)
+        elif k == 4:
+            mean_p = h_fp32.mean(dim=1, keepdim=True)
+            max_p = h_fp32.max(dim=1, keepdim=True).values
+            t_m2 = h_fp32[:, -2:-1, :]
+            t_m1 = h_fp32[:, -1:, :]
+            out = torch.cat([mean_p, max_p, t_m2, t_m1], dim=1)
+        elif k in (8, 16):
+            n_segs = k - 4
+            segs = []
+            for idx in range(n_segs):
+                s_idx = (idx * seq_len) // n_segs
+                e_idx = max(s_idx + 1, ((idx + 1) * seq_len) // n_segs)
+                segs.append(h_fp32[:, s_idx:e_idx, :].mean(dim=1, keepdim=True))
+            max_p = h_fp32.max(dim=1, keepdim=True).values
+            last_3 = h_fp32[:, -3:, :] if seq_len >= 3 else h_fp32[:, -1:, :].expand(bsz, 3, d)
+            out = torch.cat(segs + [max_p, last_3], dim=1)
+        else:
+            # Fallback uniform segment pooling for any other k
+            segs = []
+            for idx in range(k - 1):
+                s_idx = (idx * seq_len) // (k - 1)
+                e_idx = max(s_idx + 1, ((idx + 1) * seq_len) // (k - 1))
+                segs.append(h_fp32[:, s_idx:e_idx, :].mean(dim=1, keepdim=True))
+            segs.append(h_fp32[:, -1:, :])
+            out = torch.cat(segs, dim=1)
+
+        return out.to(dtype=hidden_states.dtype)
+
+    @staticmethod
     def _four_segment_pool(hidden_states: torch.Tensor, num_essence: int = 4) -> torch.Tensor:
         """
         Deterministically partition `[B, S, D]` into `num_essence=4` semantic segments:
         `[ quarter_1_mean, quarter_2_mean, quarter_3_mean, last_token_state ]`.
+        If `num_essence != 4`, delegates to `pool_k_vectors(hidden_states, k=num_essence)`.
         """
+        if num_essence != 4:
+            return ContextFunnelCompressor.pool_k_vectors(hidden_states, k=num_essence)
         bsz, seq_len, d = hidden_states.shape
         if seq_len < num_essence:
             pad_n = num_essence - seq_len
