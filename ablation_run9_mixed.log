@@ -1,0 +1,7 @@
+==========================================================================================
+10-PROBLEM SYSTEM DESIGN & FORMAL LOGIC ABLATION BENCHMARK (3 MODES)
+==========================================================================================
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:   0%|          | 1/338 [00:00<00:39,  8.43it/s]Loading weights:  15%|█▌        | 52/338 [00:00<00:01, 280.97it/s]Loading weights:  30%|██▉       | 101/338 [00:00<00:00, 361.62it/s]Loading weights:  46%|████▋     | 157/338 [00:00<00:00, 435.91it/s]Loading weights:  61%|██████    | 206/338 [00:00<00:00, 446.12it/s]Loading weights:  76%|███████▌  | 256/338 [00:00<00:00, 449.12it/s]Loading weights:  92%|█████████▏| 311/338 [00:00<00:00, 479.40it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 426.83it/s]
+[MmapSubconscious] Surgically fetching 34 tensors (1074.6 MB) from model-00002-of-00004.safetensors via 1 contiguous HTTP range(s)...
+[MmapSubconscious] Surgically fetching 62 tensors (2481.6 MB) from model-00003-of-00004.safetensors via 1 contiguous HTTP range(s)...

@@ -1,0 +1,55 @@
+==========================================================================================
+10-PROBLEM SYSTEM DESIGN & FORMAL LOGIC ABLATION BENCHMARK (3 MODES)
+==========================================================================================
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:   4%|▍         | 14/338 [00:00<00:02, 132.14it/s]Loading weights:  19%|█▉        | 64/338 [00:00<00:00, 332.37it/s]Loading weights:  33%|███▎      | 113/338 [00:00<00:00, 392.50it/s]Loading weights:  49%|████▉     | 165/338 [00:00<00:00, 440.02it/s]Loading weights:  63%|██████▎   | 213/338 [00:00<00:00, 453.78it/s]Loading weights:  77%|███████▋  | 261/338 [00:00<00:00, 461.62it/s]Loading weights:  91%|█████████ | 308/338 [00:00<00:00, 463.70it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 437.07it/s]
+[Subspace SVD Alignment] Closed-form 7B->1.5B residual cosine alignment = 0.9753
+[Calibration] Running 160 teacher-forced QA distillation + PPO router optimization steps...
+Traceback (most recent call last):
+  File "/content/subconscious-engine/benchmarks/run_ablation.py", line 467, in <module>
+    run_ablation_suite()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/content/subconscious-engine/benchmarks/run_ablation.py", line 274, in run_ablation_suite
+    m = trainer.train_step_qa(
+        q_text,
+    ...<2 lines>...
+        sample_router=(step_i < 40),
+    )
+  File "/content/subconscious-engine/src/trainer.py", line 195, in train_step_qa
+    return self.train_step(
+           ~~~~~~~~~~~~~~~^
+        full_ids,
+        ^^^^^^^^^
+    ...<3 lines>...
+        sample_router=sample_router,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/content/subconscious-engine/src/trainer.py", line 344, in train_step
+    total_loss.backward()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/dist-packages/torch/_tensor.py", line 623, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/dist-packages/torch/autograd/__init__.py", line 395, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/dist-packages/torch/autograd/graph.py", line 1072, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+RuntimeError: one of the variables needed for gradient computation has been modified by an inplace operation: [CUDABFloat16Type [78, 1536]], which is output 0 of AsStrided, is at version 1; expected version 0 instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True, check_nan=False).

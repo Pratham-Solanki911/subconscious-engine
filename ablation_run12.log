@@ -1,0 +1,77 @@
+==========================================================================================
+10-PROBLEM SYSTEM DESIGN & FORMAL LOGIC ABLATION BENCHMARK (3 MODES)
+==========================================================================================
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:   4%|▍         | 15/338 [00:00<00:02, 142.96it/s]Loading weights:  19%|█▉        | 64/338 [00:00<00:00, 334.23it/s]Loading weights:  33%|███▎      | 113/338 [00:00<00:00, 396.55it/s]Loading weights:  50%|█████     | 169/338 [00:00<00:00, 459.29it/s]Loading weights:  65%|██████▍   | 219/338 [00:00<00:00, 466.29it/s]Loading weights:  79%|███████▉  | 267/338 [00:00<00:00, 463.09it/s]Loading weights:  94%|█████████▍| 317/338 [00:00<00:00, 467.33it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 447.44it/s]
+[Subspace SVD Alignment] Closed-form 7B->1.5B residual cosine alignment = 0.9740
+[Calibration] Running 160 teacher-forced QA distillation + PPO router optimization steps...
+  [Calib Step 001/160] loss=2.3113 | ce=2.1036 | distill=0.1465 | delta_LL=+0.0138 | alpha=0.05396 | active_layers=4.0/8
+  [Calib Step 020/160] loss=1.2203 | ce=1.1851 | distill=0.0692 | delta_LL=+0.3777 | alpha=0.12061 | active_layers=7.0/8
+  [Calib Step 040/160] loss=0.6081 | ce=0.7166 | distill=0.0464 | delta_LL=+0.8462 | alpha=0.19922 | active_layers=5.0/8
+  [Calib Step 060/160] loss=0.0552 | ce=0.3479 | distill=0.0274 | delta_LL=+1.2149 | alpha=0.25391 | active_layers=5.0/8
+  [Calib Step 080/160] loss=-0.5641 | ce=0.2172 | distill=0.0158 | delta_LL=+1.3456 | alpha=0.28320 | active_layers=5.0/8
+  [Calib Step 100/160] loss=-1.1896 | ce=0.0250 | distill=0.0145 | delta_LL=+1.5378 | alpha=0.32031 | active_layers=5.0/8
+  [Calib Step 120/160] loss=-1.2584 | ce=0.0162 | distill=0.0128 | delta_LL=+1.5466 | alpha=0.32031 | active_layers=5.0/8
+  [Calib Step 140/160] loss=-1.2628 | ce=0.0062 | distill=0.0088 | delta_LL=+1.5566 | alpha=0.32617 | active_layers=5.0/8
+  [Calib Step 160/160] loss=-1.2965 | ce=0.0053 | distill=0.0062 | delta_LL=+1.5575 | alpha=0.32617 | active_layers=5.0/8
+[Gold Solution Log-Likelihood Audit] Base 1.5B LL = -1.1347 | Bridged (1.5B + 7B RAM) LL = -0.0103 (Delta = +1.1244)
+
+[01/10] P01_RAFT_ELECTION (Distributed Consensus): 5-Node Raft Log Completeness Election Safety
+  (a) Standard CoT          -> pass=True  | tok=123 | lat=4.25s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=104 | lat=3.85s | vram=3.18GB | anchors='5 -> 3 -> 1 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 68 | lat=2.79s | vram=3.19GB | trig=1/1 (layers=5.0/8)
+
+[02/10] P02_BYZANTINE_QUORUM (Distributed Systems): PBFT Minimum Replica Count & Intersection Quorum
+  (a) Standard CoT          -> pass=True  | tok=129 | lat=4.41s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=122 | lat=4.42s | vram=3.17GB | anchors='3f +  -> 5]'
+  (c) Subconscious Bridge   -> pass=True  | tok= 74 | lat=3.01s | vram=3.18GB | trig=1/1 (layers=5.0/8)
+
+[03/10] P03_TOKEN_BUCKET_BURST (System Design / Rate Limiting): Token Bucket Maximum Burst Duration
+  (a) Standard CoT          -> pass=False | tok=  7 | lat=0.25s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 89 | lat=3.37s | vram=3.18GB | anchors='300 +*T = 1'
+  (c) Subconscious Bridge   -> pass=True  | tok= 62 | lat=2.59s | vram=3.19GB | trig=1/1 (layers=5.0/8)
+
+[04/10] P04_DEADLOCK_WAIT_GRAPH (Concurrency / OS): Wait-For Graph Cycle & Minimum Victim Selection
+  (a) Standard CoT          -> pass=True  | tok= 48 | lat=1.66s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 59 | lat=2.31s | vram=3.17GB | anchors='1 -> 2 -> 4 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 57 | lat=2.45s | vram=3.19GB | trig=1/1 (layers=5.0/8)
+
+[05/10] P05_KNIGHTS_AND_KNAVES (Formal Propositional Logic): Three-Agent Knights and Knaves Truth Assignment
+  (a) Standard CoT          -> pass=True  | tok=160 | lat=5.49s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=228 | lat=8.12s | vram=3.17GB | anchors='1 -> A -> -> B -> Kn'
+  (c) Subconscious Bridge   -> pass=True  | tok=105 | lat=4.09s | vram=3.18GB | trig=1/1 (layers=5.0/8)
+
+[06/10] P06_DAG_CRITICAL_PATH (System Scheduling / Graph Algorithms): Microservice DAG Critical Path Latency
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.57s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 57 | lat=2.25s | vram=3.18GB | anchors='5 -> 430 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 96 | lat=3.82s | vram=3.20GB | trig=1/1 (layers=6.0/8)
+
+[07/10] P07_MULTI_LEVEL_CACHE_EAT (Computer Architecture / Storage Systems): Three-Tier Cache Hierarchy Effective Access Time
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.54s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=False | tok= 89 | lat=3.34s | vram=3.18GB | anchors='1 -> L1 2 ms,'
+  (c) Subconscious Bridge   -> pass=False | tok= 96 | lat=3.77s | vram=3.19GB | trig=1/1 (layers=5.0/8)
+
+[08/10] P08_CONSISTENT_HASHING_MIGRATION (Distributed Storage): Consistent Hashing Ring Key Remapping Bound
+  (a) Standard CoT          -> pass=True  | tok= 88 | lat=3.03s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=143 | lat=5.24s | vram=3.17GB | anchors='1 -> 116 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 86 | lat=3.44s | vram=3.18GB | trig=1/1 (layers=5.0/8)
+
+[09/10] P09_DINING_PHILOSOPHERS_SEMAPHORE (Concurrency Theory): Resource Hierarchy vs Footman Multiplexer Bound
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.57s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=False | tok= 32 | lat=1.37s | vram=3.17GB | anchors='7 -> 2 -> 2 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 61 | lat=2.55s | vram=3.18GB | trig=1/1 (layers=5.0/8)
+
+[10/10] P10_SERIALIZABLE_SI_WRITE_SKEW (Database Transaction Isolation): Snapshot Isolation Write Skew Anomaly Detection
+  (a) Standard CoT          -> pass=False | tok= 28 | lat=0.97s | vram=3.15GB
+  (b) Caveman+Superposition -> pass=False | tok=188 | lat=6.78s | vram=3.19GB | anchors='1 -> 2]
+
+1. **'
+  (c) Subconscious Bridge   -> pass=True  | tok= 49 | lat=2.12s | vram=3.21GB | trig=1/1 (layers=5.0/8)
+
+==========================================================================================
+HEADLINE ABLATION SUMMARY (10 MULTI-STEP SYSTEM DESIGN & LOGIC PROBLEMS)
+==========================================================================================
+  standard_cot             -> {"accuracy_pct": 50.0, "solved_count": 5, "total_problems": 10, "avg_tokens": 106.3, "avg_latency_sec": 3.67, "peak_vram_gb": 3.145, "avg_subconscious_triggers": 0.0, "avg_active_ram_layers": 0.0}
+  caveman_superposition    -> {"accuracy_pct": 70.0, "solved_count": 7, "total_problems": 10, "avg_tokens": 111.1, "avg_latency_sec": 4.1, "peak_vram_gb": 3.194, "avg_subconscious_triggers": 0.0, "avg_active_ram_layers": 0.0}
+  subconscious_bridge      -> {"accuracy_pct": 90.0, "solved_count": 9, "total_problems": 10, "avg_tokens": 75.4, "avg_latency_sec": 3.06, "peak_vram_gb": 3.206, "avg_subconscious_triggers": 1.0, "avg_active_ram_layers": 5.1}
+[Saved] /content/subconscious-engine/benchmarks/results/ablation_results.json

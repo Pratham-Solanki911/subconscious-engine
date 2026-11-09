@@ -1,0 +1,81 @@
+{
+  "status": "PASSED",
+  "init_time_sec": 3.72,
+  "peak_vram_gb": 3.029,
+  "strict_vram_limit_gb": 5.2,
+  "bridge_vram_mb": 19.83,
+  "router_vram_mb": 0.76,
+  "subconscious_audit": {
+    "layer_indices": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "num_layers": 8,
+    "loaded_tensor_count": 96,
+    "loaded_gb": 3.473,
+    "all_cpu": true
+  },
+  "superposition_l2_norm": {
+    "target": 1.0126,
+    "actual": 1.0125
+  },
+  "trainer_step1": {
+    "total_loss": 4.992944717407227,
+    "distill_loss": 0.15186330676078796,
+    "ce_loss": 4.776997089385986,
+    "ppo_loss": 0.06408445537090302,
+    "reward_mean": -0.23999999463558197,
+    "delta_log_likelihood": 0.0,
+    "active_layers_mean": 4.0,
+    "pcie_triggered_rate": 1.0,
+    "alpha_gate_value": 0.0,
+    "bridge_grad_norm": 0.21875,
+    "router_grad_norm": 4.5
+  },
+  "trainer_step2": {
+    "total_loss": 4.968003749847412,
+    "distill_loss": 0.17208588123321533,
+    "ce_loss": 4.776997089385986,
+    "ppo_loss": 0.01892070099711418,
+    "reward_mean": -0.3199999928474426,
+    "delta_log_likelihood": 0.0,
+    "active_layers_mean": 6.0,
+    "pcie_triggered_rate": 1.0,
+    "alpha_gate_value": 0.0,
+    "bridge_grad_norm": 0.2216796875,
+    "router_grad_norm": 2.40625
+  },
+  "benchmarks": {
+    "standard_cot": {
+      "latency_sec": 1.837,
+      "tokens": 52,
+      "peak_vram_gb": 2.984,
+      "answer_preview": "Yes, N4 can win the election because:\n\nThe node with term=2 and index=15 is elected leader in this case. Since there's no other candidate with higher or equal terms, N4 wins based on the Raft protocol rules."
+    },
+    "caveman_superposition": {
+      "latency_sec": 3.703,
+      "tokens": 104,
+      "latent_steps": 6,
+      "caveman_anchors": "5 -> 5 -> 5 ->",
+      "peak_vram_gb": 3.017,
+      "answer_preview": "N1 crashes, leaving {N2, N3, N4, N5} as the remaining nodes. Since N1's election timeout is longer than N2, N3, N4, and N5's, N2 will elect itself as the leader. N4 will not be able to catch up to N2's log index (12) because N2's log index "
+    },
+    "subconscious_bridge": {
+      "latency_sec": 3.922,
+      "tokens": 104,
+      "latent_steps": 6,
+      "caveman_anchors": "5 -> 5 -> 5 ->",
+      "triggers": 1,
+      "router_evals": 1,
+      "avg_active_layers": 8.0,
+      "peak_vram_gb": 3.029,
+      "answer_preview": "N1 crashes, leaving {N2, N3, N4, N5} as the remaining nodes. The election timeouts and log indices are as follows:\n- {N1, N2, N3} with term=3, idx=12\n- {N4, N5} with term=2, idx=15\n\nSince N1 crashed, the term of the current leader (N2) is 3"
+    }
+  }
+}

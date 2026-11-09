@@ -1,0 +1,36 @@
+# Environment & Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Model Weights & Tensor Caches
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+*.gguf
+
+# Python Bytecode & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Local Agent & Scratch Deployment Helpers
+.agents/
+deploy_and_launch_*.py
+launch_*.py
+relaunch_*.py
+check_*.py
+test_smooth.py
+test_split_fast.py
+*.pdf

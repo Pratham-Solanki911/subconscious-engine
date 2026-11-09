@@ -1,0 +1,100 @@
+==========================================================================================
+10-PROBLEM SYSTEM DESIGN & FORMAL LOGIC ABLATION BENCHMARK (3 MODES)
+==========================================================================================
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:   4%|▍         | 15/338 [00:00<00:02, 145.33it/s]Loading weights:  19%|█▉        | 64/338 [00:00<00:00, 336.03it/s]Loading weights:  33%|███▎      | 113/338 [00:00<00:00, 395.67it/s]Loading weights:  49%|████▉     | 165/338 [00:00<00:00, 442.25it/s]Loading weights:  65%|██████▍   | 219/338 [00:00<00:00, 455.80it/s]Loading weights:  80%|███████▉  | 269/338 [00:00<00:00, 461.11it/s]Loading weights:  96%|█████████▌| 323/338 [00:00<00:00, 484.50it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 445.69it/s]
+[Subspace SVD Alignment] Closed-form 7B->1.5B residual cosine alignment = 0.9753
+/usr/local/lib/python3.13/dist-packages/torch/ao/nn/quantized/modules/utils.py:78: UserWarning: torch.quantize_per_tensor, torch.quantize_per_channel and other quantized tensor creation functions that produce tensors with dtype torch.quint8, torch.qint8, and torch.qint32 are deprecated and will be removed in a future PyTorch release. Please see https://github.com/pytorch/pytorch/issues/184982 for more information. (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/quantized/Quantizer.cpp:111.)
+  qweight = torch.quantize_per_channel(
+[Intra-Layer Split Audit] {"intra_layer_split_enabled": true, "outlier_ratio": 0.01, "group_size": 128, "gate_up_outlier_channels": 36, "down_outlier_channels": 189, "int4_packed_mlp_mb": 777.0, "outlier_fp16_mlp_mb": 31.15}
+  (1) Full 16-bit Baseline Latency      = 119.61 ms
+  (2) Intra-Layer Split (1% FP16+INT4)  = 109.81 ms (Speedup = 1.09x)
+  (3) 7B Output Cosine Similarity       = 0.999268 (8-layer full = 0.999208)
+
+==========================================================================================
+CHECK 3: ZERO-SHOT / DISJOINT CALIBRATION GENERALIZATION AUDIT (HELD-OUT P01..P10)
+==========================================================================================
+[Disjoint Calibration] Training bridge for 40 steps ONLY on 10 external disjoint problems...
+  [Disjoint Step 001/040] loss=2.4036 | ce=2.3036 | delta_LL=+0.0045 | alpha=0.02478
+  [Disjoint Step 010/040] loss=1.6956 | ce=1.4934 | delta_LL=+0.0273 | alpha=0.02429
+  [Disjoint Step 020/040] loss=1.5853 | ce=1.4428 | delta_LL=+0.0779 | alpha=0.02698
+  [Disjoint Step 030/040] loss=1.5562 | ce=1.4064 | delta_LL=+0.1143 | alpha=0.03064
+  [Disjoint Step 040/040] loss=1.4866 | ce=1.3943 | delta_LL=+0.1264 | alpha=0.03320
+[Zero-Shot Held-Out Gold LL] Base 1.5B = -1.1347 | Disjoint-Bridged = -1.0825 (Delta = +0.0522)
+  [Zero-Shot Held-Out] P01_RAFT_ELECTION                   -> pass=True  | anchors='5 -> 3 -> 1 ->'
+  [Zero-Shot Held-Out] P02_BYZANTINE_QUORUM                -> pass=True  | anchors='3f +  -> 5]'
+  [Zero-Shot Held-Out] P03_TOKEN_BUCKET_BURST              -> pass=True  | anchors='300 +*T = 1'
+  [Zero-Shot Held-Out] P04_DEADLOCK_WAIT_GRAPH             -> pass=True  | anchors='1 -> 2 -> 4 ->'
+  [Zero-Shot Held-Out] P05_KNIGHTS_AND_KNAVES              -> pass=True  | anchors='1 -> A -> -> B -> Kn'
+  [Zero-Shot Held-Out] P06_DAG_CRITICAL_PATH               -> pass=True  | anchors='5 -> 430 ->'
+  [Zero-Shot Held-Out] P07_MULTI_LEVEL_CACHE_EAT           -> pass=False | anchors='1 -> L1 2 ms,'
+  [Zero-Shot Held-Out] P08_CONSISTENT_HASHING_MIGRATION    -> pass=False | anchors='1 -> 116 ->'
+  [Zero-Shot Held-Out] P09_DINING_PHILOSOPHERS_SEMAPHORE   -> pass=False | anchors='7 -> 2 -> 2 ->'
+  [Zero-Shot Held-Out] P10_SERIALIZABLE_SI_WRITE_SKEW      -> pass=False | anchors='1 -> 2]
+
+1. **'
+[Zero-Shot Held-Out Summary] Solved 6/10 (60.0%) on strictly unseen P01..P10 (vs 5/10 Standard CoT and 7/10 Unbridged Caveman)!
+
+[In-Domain Calibration] Running 160 teacher-forced QA distillation + PPO router optimization steps...
+  [Calib Step 001/160] loss=1.4810 | ce=2.1222 | distill=0.1435 | delta_LL=+0.0071 | alpha=0.04614 | active_layers=3.0/8
+  [Calib Step 020/160] loss=0.5325 | ce=1.2430 | distill=0.0737 | delta_LL=+0.3198 | alpha=0.10596 | active_layers=7.0/8
+  [Calib Step 040/160] loss=-0.3177 | ce=0.7209 | distill=0.0477 | delta_LL=+0.8419 | alpha=0.18457 | active_layers=5.0/8
+  [Calib Step 060/160] loss=-1.5303 | ce=0.3139 | distill=0.0302 | delta_LL=+1.2489 | alpha=0.23438 | active_layers=8.0/8
+  [Calib Step 080/160] loss=-1.9565 | ce=0.1442 | distill=0.0207 | delta_LL=+1.4186 | alpha=0.27344 | active_layers=8.0/8
+  [Calib Step 100/160] loss=-2.2770 | ce=0.0260 | distill=0.0182 | delta_LL=+1.5368 | alpha=0.29883 | active_layers=8.0/8
+  [Calib Step 120/160] loss=-2.3524 | ce=0.0066 | distill=0.0161 | delta_LL=+1.5562 | alpha=0.30664 | active_layers=8.0/8
+  [Calib Step 140/160] loss=-2.3755 | ce=0.0034 | distill=0.0093 | delta_LL=+1.5594 | alpha=0.30664 | active_layers=8.0/8
+  [Calib Step 160/160] loss=-2.3822 | ce=0.0019 | distill=0.0029 | delta_LL=+1.5609 | alpha=0.30664 | active_layers=8.0/8
+
+==========================================================================================
+CHECK 2: P07_MULTI_LEVEL_CACHE_EAT SYNC-POINT TIMING DIAGNOSTIC (POST-CAVEMAN vs PRE-CAVEMAN)
+==========================================================================================
+  [P07 Post-Caveman Sync (sync_before_caveman=False)] pass=True | ram_ms=112.23ms | wait_ms=0.01ms
+    Caveman Trace: '1 -> L1 2 ms,'
+    Final Answer : 'EAT = 2 + 2 + 9 = 13 ms (L1 = 2 ms, L2 miss penalty = 0.20 * 10 = 2 ms, Object Storage penalty = 0.10 * 90 = 9 ms).'
+  [P07 Pre-Caveman Sync  (sync_before_caveman=True )] pass=True | ram_ms=93.27ms | wait_ms=66.31ms
+    Caveman Trace: '1 -> L1 2 ms ->'
+    Final Answer : 'EAT = 2 + 2 + 9 = 13 ms (L1 = 2 ms, L2 miss penalty = 0.20 * 10 = 2 ms, Object Storage penalty = 0.10 * 90 = 9 ms).'
+[Gold Solution Log-Likelihood Audit] Base 1.5B LL = -0.1511 | Bridged (1.5B + 7B RAM) LL = -0.0013 (Delta = +0.1497)
+
+[01/10] P01_RAFT_ELECTION (Distributed Consensus): 5-Node Raft Log Completeness Election Safety
+  (a) Standard CoT          -> pass=True  | tok=123 | lat=4.30s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=104 | lat=3.92s | vram=3.18GB | anchors='5 -> 3 -> 1 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 68 | lat=2.76s | vram=3.19GB | trig=1/1 (layers=8.0/8) | ram_ms=115.2ms | async_wait=0.01ms
+
+[02/10] P02_BYZANTINE_QUORUM (Distributed Systems): PBFT Minimum Replica Count & Intersection Quorum
+  (a) Standard CoT          -> pass=True  | tok=129 | lat=4.55s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=122 | lat=4.56s | vram=3.17GB | anchors='3f +  -> 5]'
+  (c) Subconscious Bridge   -> pass=True  | tok= 74 | lat=2.96s | vram=3.18GB | trig=1/1 (layers=8.0/8) | ram_ms=110.0ms | async_wait=0.01ms
+
+[03/10] P03_TOKEN_BUCKET_BURST (System Design / Rate Limiting): Token Bucket Maximum Burst Duration
+  (a) Standard CoT          -> pass=False | tok=  7 | lat=0.25s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 89 | lat=3.37s | vram=3.18GB | anchors='300 +*T = 1'
+  (c) Subconscious Bridge   -> pass=True  | tok= 59 | lat=2.43s | vram=3.19GB | trig=1/1 (layers=8.0/8) | ram_ms=112.0ms | async_wait=0.01ms
+
+[04/10] P04_DEADLOCK_WAIT_GRAPH (Concurrency / OS): Wait-For Graph Cycle & Minimum Victim Selection
+  (a) Standard CoT          -> pass=True  | tok= 48 | lat=1.68s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 59 | lat=2.35s | vram=3.18GB | anchors='1 -> 2 -> 4 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 57 | lat=2.37s | vram=3.19GB | trig=1/1 (layers=8.0/8) | ram_ms=120.1ms | async_wait=0.01ms
+
+[05/10] P05_KNIGHTS_AND_KNAVES (Formal Propositional Logic): Three-Agent Knights and Knaves Truth Assignment
+  (a) Standard CoT          -> pass=True  | tok=160 | lat=5.58s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=228 | lat=8.23s | vram=3.17GB | anchors='1 -> A -> -> B -> Kn'
+  (c) Subconscious Bridge   -> pass=True  | tok=100 | lat=3.88s | vram=3.18GB | trig=1/1 (layers=8.0/8) | ram_ms=111.8ms | async_wait=0.01ms
+
+[06/10] P06_DAG_CRITICAL_PATH (System Scheduling / Graph Algorithms): Microservice DAG Critical Path Latency
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.51s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 57 | lat=2.23s | vram=3.18GB | anchors='5 -> 430 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 96 | lat=3.68s | vram=3.20GB | trig=1/1 (layers=8.0/8) | ram_ms=110.2ms | async_wait=0.01ms
+
+[07/10] P07_MULTI_LEVEL_CACHE_EAT (Computer Architecture / Storage Systems): Three-Tier Cache Hierarchy Effective Access Time
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.65s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=False | tok= 89 | lat=3.39s | vram=3.18GB | anchors='1 -> L1 2 ms,'
+  (c) Subconscious Bridge   -> pass=True  | tok= 69 | lat=2.79s | vram=3.19GB | trig=1/1 (layers=8.0/8) | ram_ms=114.2ms | async_wait=0.01ms
+
+[08/10] P08_CONSISTENT_HASHING_MIGRATION (Distributed Storage): Consistent Hashing Ring Key Remapping Bound
+  (a) Standard CoT          -> pass=True  | tok= 88 | lat=3.12s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=143 | lat=5.17s | vram=3.17GB | anchors='1 -> 116 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 95 | lat=3.62s | vram=3.18GB | trig=1/1 (layers=8.0/8) | ram_ms=109.8ms | async_wait=0.01ms
+
+[09/10] P09_DINING_PHILOSOPHERS_SEMAPHORE (Concurrency Theory): Resource Hierarchy vs Footman Multiplexer Bound

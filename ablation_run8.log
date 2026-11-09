@@ -1,0 +1,47 @@
+==========================================================================================
+10-PROBLEM SYSTEM DESIGN & FORMAL LOGIC ABLATION BENCHMARK (3 MODES)
+==========================================================================================
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:   4%|▍         | 15/338 [00:00<00:02, 145.20it/s]Loading weights:  19%|█▊        | 63/338 [00:00<00:00, 330.96it/s]Loading weights:  33%|███▎      | 113/338 [00:00<00:00, 398.78it/s]Loading weights:  49%|████▉     | 166/338 [00:00<00:00, 449.21it/s]Loading weights:  65%|██████▍   | 219/338 [00:00<00:00, 457.28it/s]Loading weights:  80%|███████▉  | 269/338 [00:00<00:00, 462.79it/s]Loading weights:  96%|█████████▌| 323/338 [00:00<00:00, 485.46it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 446.99it/s]
+[Subspace SVD Alignment] Closed-form 7B->1.5B residual cosine alignment = 0.9717
+[Calibration] Running 120 teacher-forced QA distillation + PPO router optimization steps...
+  [Calib Step 001/120] loss=4.1751 | ce=2.1081 | distill=0.1759 | delta_LL=+0.0093 | alpha=0.05396 | active_layers=6.0/8
+  [Calib Step 020/120] loss=1.1628 | ce=1.2379 | distill=0.0571 | delta_LL=+0.3249 | alpha=0.12109 | active_layers=5.0/8
+  [Calib Step 040/120] loss=1.0542 | ce=1.0253 | distill=0.0451 | delta_LL=+0.5375 | alpha=0.19922 | active_layers=8.0/8
+  [Calib Step 060/120] loss=0.5771 | ce=0.7972 | distill=0.0469 | delta_LL=+0.7656 | alpha=0.26758 | active_layers=7.0/8
+  [Calib Step 080/120] loss=0.4297 | ce=0.6418 | distill=0.0522 | delta_LL=+0.9210 | alpha=0.32227 | active_layers=5.0/8
+  [Calib Step 100/120] loss=0.5691 | ce=0.6394 | distill=0.0379 | delta_LL=+0.9234 | alpha=0.36328 | active_layers=6.0/8
+  [Calib Step 120/120] loss=0.2683 | ce=0.4021 | distill=0.0263 | delta_LL=+1.1607 | alpha=0.40234 | active_layers=7.0/8
+[Gold Solution Log-Likelihood Audit] Base 1.5B LL = -1.1347 | Bridged (1.5B + 7B RAM) LL = -0.3408 (Delta = +0.7938)
+
+[01/10] P01_RAFT_ELECTION (Distributed Consensus): 5-Node Raft Log Completeness Election Safety
+  (a) Standard CoT          -> pass=True  | tok=123 | lat=4.23s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=104 | lat=3.84s | vram=3.18GB | anchors='5 -> 3 -> 1 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok=104 | lat=3.81s | vram=3.18GB | trig=0/0 (layers=0.0/8)
+
+[02/10] P02_BYZANTINE_QUORUM (Distributed Systems): PBFT Minimum Replica Count & Intersection Quorum
+  (a) Standard CoT          -> pass=True  | tok=129 | lat=4.41s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=122 | lat=4.40s | vram=3.17GB | anchors='3f +  -> 5]'
+  (c) Subconscious Bridge   -> pass=True  | tok=122 | lat=4.40s | vram=3.17GB | trig=0/0 (layers=0.0/8)
+
+[03/10] P03_TOKEN_BUCKET_BURST (System Design / Rate Limiting): Token Bucket Maximum Burst Duration
+  (a) Standard CoT          -> pass=False | tok=  7 | lat=0.25s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 89 | lat=3.32s | vram=3.18GB | anchors='300 +*T = 1'
+  (c) Subconscious Bridge   -> pass=True  | tok= 89 | lat=3.32s | vram=3.18GB | trig=0/0 (layers=0.0/8)
+
+[04/10] P04_DEADLOCK_WAIT_GRAPH (Concurrency / OS): Wait-For Graph Cycle & Minimum Victim Selection
+  (a) Standard CoT          -> pass=True  | tok= 48 | lat=1.66s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 59 | lat=2.29s | vram=3.17GB | anchors='1 -> 2 -> 4 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 59 | lat=2.29s | vram=3.17GB | trig=0/0 (layers=0.0/8)
+
+[05/10] P05_KNIGHTS_AND_KNAVES (Formal Propositional Logic): Three-Agent Knights and Knaves Truth Assignment
+  (a) Standard CoT          -> pass=True  | tok=160 | lat=5.47s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok=228 | lat=8.05s | vram=3.17GB | anchors='1 -> A -> -> B -> Kn'
+  (c) Subconscious Bridge   -> pass=True  | tok=228 | lat=8.03s | vram=3.17GB | trig=0/0 (layers=0.0/8)
+
+[06/10] P06_DAG_CRITICAL_PATH (System Scheduling / Graph Algorithms): Microservice DAG Critical Path Latency
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.44s | vram=3.14GB
+  (b) Caveman+Superposition -> pass=True  | tok= 57 | lat=2.24s | vram=3.18GB | anchors='5 -> 430 ->'
+  (c) Subconscious Bridge   -> pass=True  | tok= 57 | lat=2.21s | vram=3.18GB | trig=0/0 (layers=0.0/8)
+
+[07/10] P07_MULTI_LEVEL_CACHE_EAT (Computer Architecture / Storage Systems): Three-Tier Cache Hierarchy Effective Access Time

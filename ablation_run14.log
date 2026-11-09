@@ -1,0 +1,86 @@
+===============================================================================================
+ANSWER-FREE CLOSED-FORM 500-PROMPT SVD / RIDGE DICTIONARY ALIGNMENT BENCHMARK (ablation_run14)
+===============================================================================================
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:   4%|▍         | 15/338 [00:00<00:02, 143.15it/s]Loading weights:  19%|█▊        | 63/338 [00:00<00:00, 313.16it/s]Loading weights:  35%|███▍      | 117/338 [00:00<00:00, 407.84it/s]Loading weights:  50%|████▉     | 168/338 [00:00<00:00, 446.67it/s]Loading weights:  65%|██████▍   | 219/338 [00:00<00:00, 457.92it/s]Loading weights:  79%|███████▉  | 267/338 [00:00<00:00, 456.50it/s]Loading weights:  94%|█████████▍| 317/338 [00:00<00:00, 461.74it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 441.13it/s]
+[Step A: Corpus Audit] Verified 500 unique unlabeled reasoning prompts across 20 domains (2,000 segment vectors, 0 gold answers, 0% topic/wording overlap with P01..P10).
+[SVD Manifold Alignment] Collecting 1.5B Layer-14 & Deep Target states across 500 unlabeled prompts (2000 vectors)...
+[SVD Manifold Alignment] Streaming 500 prompts (batch_size=25) through 7B Subconscious Layers [12..19]...
+[SVD Manifold Cache] Saved 2000-vector paired manifold to /content/subconscious-engine/svd_manifold_cache.pt
+
+===============================================================================================
+STEP B: 500-PROMPT (2,000-VECTOR) CLOSED-FORM SVD / RIDGE MANIFOLD REPORT (94.86s)
+===============================================================================================
+  * QA Gradient Steps / CE Loss         : 0 steps | ce_loss = 0.0000 (100% Answer-Free)
+  * W_up Rank (10-Prompt vs 500-Prompt) : 33 (eff=16.7) -> 376 / 1536 (eff=61.2)
+  * W_down Rank (10-Prompt vs 500-Prompt): 32 (eff=10.1) -> 1536 / 1536 (eff=58.1)
+  * W_up Cosine Alignment               : Train (450 prompts) = 0.8999 | Held-Out (50 prompts) = 0.9008
+  * W_down Cosine Alignment             : Train (450 prompts) = 0.9908 | Held-Out (50 prompts) = 0.9903 | Unseen P01..P10 = 0.9141
+/usr/local/lib/python3.13/dist-packages/torch/ao/nn/quantized/modules/utils.py:72: UserWarning: torch.quantize_per_tensor, torch.quantize_per_channel and other quantized tensor creation functions that produce tensors with dtype torch.quint8, torch.qint8, and torch.qint32 are deprecated and will be removed in a future PyTorch release. Please see https://github.com/pytorch/pytorch/issues/184982 for more information. (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/quantized/Quantizer.cpp:111.)
+  qweight = torch.quantize_per_tensor(
+[Intra-Layer Split Audit] {"intra_layer_split_enabled": true, "outlier_ratio": 0.01, "group_size": 128, "gate_up_outlier_channels": 36, "down_outlier_channels": 189, "int4_packed_mlp_mb": 777.0, "outlier_fp16_mlp_mb": 31.15}
+  (1) Full 16-bit Baseline Latency      = 114.72 ms
+  (2) Intra-Layer Split (1% FP16+INT4)  = 48.93 ms (Speedup = 2.34x)
+  (3) 7B Output Cosine Similarity       = 0.990594 (8-layer full = 0.985896)
+
+[Unseen Gold Solution Log-Likelihood Audit (0 QA Steps)] Base 1.5B LL = -1.1585 | 500-Prompt SVD Bridged (1.5B + 7B RAM) LL = -1.1584 (Delta = +0.0002)
+
+[01/10] P01_RAFT_ELECTION (Distributed Consensus): 5-Node Raft Log Completeness Election Safety
+  (a) Standard CoT          -> pass=True  | tok=123 | lat=4.15s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=True  | tok=104 | lat=3.80s | vram=3.11GB | anchors='5 -> 3 -> 1 ->'
+  (c) Pure SVD Bridge (500p)-> pass=True  | tok=104 | lat=3.94s | vram=3.11GB | trig=1/1 (layers=7.0/8) | ram_ms=104.1ms | async_wait=0.01ms
+
+[02/10] P02_BYZANTINE_QUORUM (Distributed Systems): PBFT Minimum Replica Count & Intersection Quorum
+  (a) Standard CoT          -> pass=True  | tok=129 | lat=4.27s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=True  | tok=122 | lat=4.34s | vram=3.11GB | anchors='3f +  -> 5]'
+  (c) Pure SVD Bridge (500p)-> pass=True  | tok=122 | lat=4.61s | vram=3.11GB | trig=1/1 (layers=8.0/8) | ram_ms=116.6ms | async_wait=0.01ms
+
+[03/10] P03_TOKEN_BUCKET_BURST (System Design / Rate Limiting): Token Bucket Maximum Burst Duration
+  (a) Standard CoT          -> pass=False | tok=  7 | lat=0.24s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=True  | tok= 89 | lat=3.26s | vram=3.11GB | anchors='300 +*T = 1'
+  (c) Pure SVD Bridge (500p)-> pass=True  | tok= 89 | lat=3.40s | vram=3.11GB | trig=1/1 (layers=7.0/8) | ram_ms=101.1ms | async_wait=0.01ms
+
+[04/10] P04_DEADLOCK_WAIT_GRAPH (Concurrency / OS): Wait-For Graph Cycle & Minimum Victim Selection
+  (a) Standard CoT          -> pass=True  | tok= 48 | lat=1.63s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=True  | tok= 59 | lat=2.26s | vram=3.11GB | anchors='1 -> 2 -> 4 ->'
+  (c) Pure SVD Bridge (500p)-> pass=True  | tok= 59 | lat=2.37s | vram=3.11GB | trig=1/1 (layers=7.0/8) | ram_ms=98.4ms | async_wait=0.01ms
+
+[05/10] P05_KNIGHTS_AND_KNAVES (Formal Propositional Logic): Three-Agent Knights and Knaves Truth Assignment
+  (a) Standard CoT          -> pass=True  | tok=160 | lat=5.36s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=True  | tok=228 | lat=7.88s | vram=3.10GB | anchors='1 -> A -> -> B -> Kn'
+  (c) Pure SVD Bridge (500p)-> pass=True  | tok=228 | lat=8.21s | vram=3.10GB | trig=1/1 (layers=7.0/8) | ram_ms=98.0ms | async_wait=0.01ms
+
+[06/10] P06_DAG_CRITICAL_PATH (System Scheduling / Graph Algorithms): Microservice DAG Critical Path Latency
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.36s | vram=3.08GB
+  (b) Caveman+Superposition -> pass=True  | tok= 57 | lat=2.19s | vram=3.12GB | anchors='5 -> 430 ->'
+  (c) Pure SVD Bridge (500p)-> pass=False | tok= 92 | lat=3.51s | vram=3.12GB | trig=1/1 (layers=7.0/8) | ram_ms=100.7ms | async_wait=0.01ms
+
+[07/10] P07_MULTI_LEVEL_CACHE_EAT (Computer Architecture / Storage Systems): Three-Tier Cache Hierarchy Effective Access Time
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.36s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=False | tok= 89 | lat=3.26s | vram=3.11GB | anchors='1 -> L1 2 ms,'
+  (c) Pure SVD Bridge (500p)-> pass=False | tok=108 | lat=4.11s | vram=3.11GB | trig=1/1 (layers=7.0/8) | ram_ms=110.0ms | async_wait=0.01ms
+
+[08/10] P08_CONSISTENT_HASHING_MIGRATION (Distributed Storage): Consistent Hashing Ring Key Remapping Bound
+  (a) Standard CoT          -> pass=True  | tok= 88 | lat=2.95s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=True  | tok=143 | lat=5.06s | vram=3.10GB | anchors='1 -> 116 ->'
+  (c) Pure SVD Bridge (500p)-> pass=True  | tok=143 | lat=5.29s | vram=3.10GB | trig=1/1 (layers=8.0/8) | ram_ms=112.2ms | async_wait=0.01ms
+
+[09/10] P09_DINING_PHILOSOPHERS_SEMAPHORE (Concurrency Theory): Resource Hierarchy vs Footman Multiplexer Bound
+  (a) Standard CoT          -> pass=False | tok=160 | lat=5.40s | vram=3.07GB
+  (b) Caveman+Superposition -> pass=False | tok= 32 | lat=1.36s | vram=3.11GB | anchors='7 -> 2 -> 2 ->'
+  (c) Pure SVD Bridge (500p)-> pass=False | tok= 62 | lat=2.48s | vram=3.11GB | trig=1/1 (layers=7.0/8) | ram_ms=97.8ms | async_wait=0.01ms
+
+[10/10] P10_SERIALIZABLE_SI_WRITE_SKEW (Database Transaction Isolation): Snapshot Isolation Write Skew Anomaly Detection
+  (a) Standard CoT          -> pass=False | tok= 28 | lat=0.94s | vram=3.08GB
+  (b) Caveman+Superposition -> pass=False | tok=188 | lat=6.56s | vram=3.13GB | anchors='1 -> 2]
+
+1. **'
+  (c) Pure SVD Bridge (500p)-> pass=False | tok=162 | lat=5.93s | vram=3.13GB | trig=1/1 (layers=7.0/8) | ram_ms=99.1ms | async_wait=0.01ms
+
+===============================================================================================
+HEADLINE ABLATION SUMMARY — PURE ANSWER-FREE 500-PROMPT SVD BRIDGE (0 QA GRADIENT STEPS)
+===============================================================================================
+  standard_cot             -> {"accuracy_pct": 50.0, "solved_count": 5, "total_problems": 10, "avg_tokens": 106.3, "avg_latency_sec": 3.57, "peak_vram_gb": 3.079, "avg_subconscious_triggers": 0.0, "avg_active_ram_layers": 0.0, "avg_raw_subconscious_ram_ms": 0.0, "avg_effective_bridge_wait_ms": 0.0}
+  caveman_superposition    -> {"accuracy_pct": 70.0, "solved_count": 7, "total_problems": 10, "avg_tokens": 111.1, "avg_latency_sec": 4.0, "peak_vram_gb": 3.13, "avg_subconscious_triggers": 0.0, "avg_active_ram_layers": 0.0, "avg_raw_subconscious_ram_ms": 0.0, "avg_effective_bridge_wait_ms": 0.0}
+  subconscious_bridge      -> {"accuracy_pct": 60.0, "solved_count": 6, "total_problems": 10, "avg_tokens": 116.9, "avg_latency_sec": 4.38, "peak_vram_gb": 3.13, "avg_subconscious_triggers": 1.0, "avg_active_ram_layers": 7.2, "avg_raw_subconscious_ram_ms": 103.8, "avg_effective_bridge_wait_ms": 0.01}
+[Saved] /content/subconscious-engine/benchmarks/results/ablation_results.json
